@@ -22,6 +22,7 @@ check: env-check
 	mypy --strict overlap tests tools
 	pytest -m "not live" --disable-socket --timeout=5
 	python tools/dag_lint.py validate
+	python tools/dag_lint.py verify-commit HEAD
 
 lint: env-check
 	ruff check .

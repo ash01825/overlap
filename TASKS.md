@@ -108,7 +108,7 @@ blocked_reason: ""
 id: T0.02
 title: tools/dag_lint.py — validate, next, show, set, verify-commit
 phase: 0
-status: todo
+status: done
 needs: [T0.01]
 reopens: [T0.01]
 files:
@@ -138,10 +138,13 @@ evidence:
   - "python tools/dag_lint.py validate => OK, 25 tasks"
   - "python tools/dag_lint.py next => prints T0.03 (after T0.01/T0.02 done)"
   - "make fast => pass < 15 s"
-evidence_observed: []
+evidence_observed:
+  - "python tools/dag_lint.py validate => OK, 25 tasks"
+  - "python tools/dag_lint.py next => prints T0.03 (lowest-ID ready task, phase 0)"
+  - "make fast => 43 passed, 1 warning in 0.35s (< 15 s)"
 commit:
   msg: "T0.02: dag_lint (validate/next/show/set/verify-commit) with fixtures"
-  sha: null
+  sha: "c3395888baed2608ecabe11272d8aafcf9b491d9"
 strikes: 0
 blocked_reason: ""
 ```
