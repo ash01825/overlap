@@ -1,0 +1,13 @@
+[importlinter]
+root_packages =
+    overlap
+
+[importlinter:contract:layering]
+name = Layering contract (integrations > adapters > runtime > ports > core)
+type = layers
+layers =
+    overlap.integrations
+    overlap.adapters
+    overlap.runtime
+    overlap.ports
+    overlap.core

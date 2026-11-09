@@ -1,0 +1,51 @@
+# Python bytecode and build artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments & local env files
+.env
+.env.*
+!.env.example
+*.env
+venv/
+ENV/
+env/
+
+# Test, lint, and type check caches
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.importlinter_cache/
+
+# Audio and evaluation recordings / reports
+reports/
+reports/ab/
+*.wav
+*.pcm
+
+# IDE & OS files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store

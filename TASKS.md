@@ -49,7 +49,7 @@ Phase 1 tasks (T1.01–T1.05) are independent after T0.03 and can run in any ord
 id: T0.01
 title: Repo scaffold, Makefile gates, layering/purity tests
 phase: 0
-status: todo
+status: done
 needs: []
 reopens: []
 files:
@@ -93,10 +93,12 @@ done_when:
 evidence:
   - "make fast => '3+ passed' and elapsed < 15 s"
   - "make check => exit 0"
-evidence_observed: []
+evidence_observed:
+  - "make fast => 19 passed, 1 warning in 0.06s (elapsed < 15 s; dummy slow timed out at 1.00s with exit 124)"
+  - "make check => exit 0 (ruff check clean, ruff format --check clean, lint-imports contract kept, mypy --strict clean, pytest 19 passed in 0.06s, dag_lint validate exit 0)"
 commit:
   msg: "T0.01: scaffold repo, make fast/check gates, core purity + layering tests"
-  sha: null
+  sha: "988b609c24aa8795265ba275d354dbd66a1fd206"
 strikes: 0
 blocked_reason: ""
 ```
