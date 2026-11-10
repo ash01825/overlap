@@ -798,7 +798,7 @@ blocked_reason: ""
 id: T3.02
 title: PrismaSttAdapter — WS streaming, partials/finals, language detect, reconnect
 phase: 3
-status: todo
+status: done
 needs: [T3.01, T0.05]
 reopens: []
 files:
@@ -828,10 +828,11 @@ done_when:
   - "live test (marker live) measures partial latency; not run in fast/check"
 evidence:
   - "make fast => pass; adapter tests use only non-assumed fixtures"
-evidence_observed: []
+evidence_observed:
+  - "make fast => 551 passed, 6 deselected, 1 warning in 1.42s; adapter tests use only non-assumed fixtures"
 commit:
   msg: "T3.02: Prisma STT adapter with replay-tested wire handling"
-  sha: null
+  sha: "e13df2330635fcf7f832b23242c30a24dd1ee467"
 strikes: 0
 blocked_reason: ""
 ```
