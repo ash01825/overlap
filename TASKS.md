@@ -472,7 +472,7 @@ blocked_reason: ""
 id: T1.05
 title: Pure FSM transition table, effects, timers-as-data, epochs
 phase: 1
-status: todo
+status: done
 needs: [T0.03]
 reopens: []
 files:
@@ -501,10 +501,12 @@ done_when:
   - "module imports nothing but core types (purity test passes)"
 evidence:
   - "make fast => pass; reports N property examples run"
-evidence_observed: []
+evidence_observed:
+  - "make fast => 156 passed, 1 warning in 0.77s"
+  - "Hypothesis property tests: 9 invariants passed, 450 examples run (50 per invariant) in 0.24s"
 commit:
   msg: "T1.05: pure FSM with effects, timers-as-data, epochs"
-  sha: null
+  sha: "6f91fc00d2bfbf631b82014ac9c78830b14bfb86"
 strikes: 0
 blocked_reason: ""
 ```
