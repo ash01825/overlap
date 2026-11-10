@@ -1,0 +1,64 @@
+# needs native-speaker review
+backchannel:
+  - avunu
+  - avunandi
+  - sare
+  - sarle
+  - alage
+  - alagandi
+  - haan
+  - hmm
+  - ok
+  - అవును
+  - అవునండి
+  - సరే
+  - సర్లే
+  - అలాగే
+  - అలాగండి
+  - హాఁ
+  - హ్మ్
+stop:
+  - aagandi
+  - aagu
+  - vaddu
+  - voddu
+  - vadhoddu
+  - aapeyi
+  - apandi
+  - oka nimisham
+  - vundandi
+  - ఆగండి
+  - ఆగు
+  - వద్దు
+  - వద్దు వద్దు
+  - ఆపేయి
+  - ఆపండి
+  - ఒక నిమిషం
+  - ఉండండి
+contrast:
+  - kaani
+  - kani
+  - ayithe
+  - ayina
+  - but
+  - కానీ
+  - కని
+  - అయితే
+  - అయినా
+question:
+  - enti
+  - emiti
+  - enduku
+  - ela
+  - ekkada
+  - eppudu
+  - evaru
+  - edi
+  - ఏంటి
+  - ఏమిటి
+  - ఎందుకు
+  - ఎలా
+  - ఎక్కడ
+  - ఎప్పుడు
+  - ఎవరు
+  - ఏది

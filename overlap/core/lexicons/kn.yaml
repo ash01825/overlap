@@ -1,0 +1,54 @@
+# needs native-speaker review
+backchannel:
+  - howdu
+  - haudu
+  - sari
+  - sari sari
+  - aithu
+  - aytu
+  - howdhu
+  - hmm
+  - ok
+  - ಹೌದು
+  - ಸರಿ
+  - ಸರಿ ಸರಿ
+  - ಆಯ್ತು
+  - ಹ್ಮ್
+stop:
+  - nillisi
+  - nilli
+  - beda
+  - thadi
+  - thadiri
+  - ondu nimisha
+  - bedave beda
+  - ನಿಲ್ಲಿಸಿ
+  - ನಿಲ್ಲಿ
+  - ಬೇಡ
+  - ತಡಿ
+  - ತಡಿರಿ
+  - ಒಂದು ನಿಮಿಷ
+contrast:
+  - aadre
+  - aadare
+  - aadagyu
+  - aadhare
+  - but
+  - ಆದ್ರೆ
+  - ಆದರೆ
+  - ಆದಾಗ್ಯೂ
+question:
+  - yenu
+  - yaake
+  - hege
+  - yelli
+  - yaavaaga
+  - yaaru
+  - yaavudu
+  - ಏನು
+  - ಯಾಕೆ
+  - ಹೇಗೆ
+  - ಎಲ್ಲಿ
+  - ಯಾವಾಗ
+  - ಯಾರು
+  - ಯಾವುದು

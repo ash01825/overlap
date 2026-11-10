@@ -1,0 +1,52 @@
+# needs native-speaker review
+backchannel:
+  - ha
+  - saru
+  - barabar
+  - theek che
+  - theek
+  - saaru
+  - hmm
+  - ok
+  - હા
+  - સારું
+  - બરાબર
+  - ઠીક છે
+  - ઠીક
+  - હં
+stop:
+  - ubha raho
+  - ubho reh
+  - na
+  - nathi
+  - ek minute
+  - thobho
+  - રહેવા દો
+  - ઉભા રહો
+  - ઉભો રહે
+  - ના
+  - નથી
+  - એક મિનિટ
+  - થોભો
+contrast:
+  - pan
+  - parantu
+  - kintu
+  - but
+  - પણ
+  - પરંતુ
+  - કિંતુ
+question:
+  - shu
+  - kem
+  - kevi rite
+  - kevirite
+  - kya
+  - kyare
+  - kon
+  - શું
+  - કેમ
+  - કેવી રીતે
+  - ક્યાં
+  - ક્યારે
+  - કોણ

@@ -1,0 +1,62 @@
+# needs native-speaker review
+backchannel:
+  - seri
+  - sari
+  - aama
+  - aamam
+  - aamanga
+  - saringa
+  - hmm
+  - ok
+  - சரி
+  - ஆமா
+  - ஆமாம்
+  - ஆமாங்க
+  - சரிங்க
+  - ம்ம்
+stop:
+  - nillu
+  - nillunga
+  - nillungal
+  - iru
+  - irunga
+  - vendam
+  - niruthu
+  - niruthunga
+  - oru nimisham
+  - aagathu
+  - நில்லு
+  - நில்லுங்க
+  - நில்லுங்கள்
+  - இரு
+  - இருங்க
+  - வேண்டாம்
+  - நிறுத்து
+  - நிறுத்துங்க
+  - ஒரு நிமிஷம்
+contrast:
+  - aana
+  - aanaal
+  - anal
+  - aanalum
+  - but
+  - ஆனா
+  - ஆனால்
+  - ஆனாலும்
+question:
+  - enna
+  - edhuku
+  - eppadi
+  - enga
+  - eppo
+  - yaar
+  - edhu
+  - enge
+  - என்ன
+  - எதுக்கு
+  - எப்படி
+  - எங்க
+  - எப்போ
+  - யார்
+  - எது
+  - எங்கே

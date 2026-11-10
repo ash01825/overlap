@@ -1,0 +1,55 @@
+# needs native-speaker review
+backchannel:
+  - haan
+  - haanji
+  - theek aa
+  - theek hai
+  - achha
+  - hanji
+  - aaho
+  - hmm
+  - ok
+  - ਹਾਂ
+  - ਹਾਂਜੀ
+  - ਠੀਕ ਆ
+  - ਠੀਕ ਹੈ
+  - ਅੱਛਾ
+  - ਹਾਂਜੀ
+  - ਆਹੋ
+  - ਹੰ
+stop:
+  - ruko
+  - khalo
+  - na
+  - nahi
+  - ik minute
+  - bas
+  - roko
+  - ਰੁਕੋ
+  - ਖਲੋ
+  - ਨਾ
+  - ਨਹੀਂ
+  - ਇਕ ਮਿੰਟ
+  - ਬਸ
+  - ਰੋਕੋ
+contrast:
+  - par
+  - lekin
+  - parantu
+  - but
+  - ਪਰ
+  - ਲੇਕਿਨ
+  - ਪਰੰਤੂ
+question:
+  - ki
+  - kyun
+  - kiven
+  - kithe
+  - kadon
+  - kaun
+  - ਕੀ
+  - ਕਿਉਂ
+  - ਕਿਵੇਂ
+  - ਕਿੱਥੇ
+  - ਕਦੋਂ
+  - ਕੌਣ

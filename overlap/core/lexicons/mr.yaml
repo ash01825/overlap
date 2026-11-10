@@ -1,0 +1,54 @@
+# needs native-speaker review
+backchannel:
+  - ho
+  - hoy
+  - barobar
+  - achha
+  - theek ahe
+  - theek
+  - theek aahe
+  - hmm
+  - ok
+  - हो
+  - होय
+  - बरोबर
+  - अच्छा
+  - ठीक आहे
+  - ठीक
+  - हं
+stop:
+  - thamba
+  - thamb
+  - nako
+  - ek minute
+  - rahu dya
+  - thaamba
+  - थांबा
+  - थांब
+  - नको
+  - एक मिनिट
+  - राहू द्या
+contrast:
+  - pan
+  - parantu
+  - kintu
+  - but
+  - पण
+  - परंतु
+  - किंतु
+question:
+  - kay
+  - kasha sathi
+  - kashasathi
+  - kasa
+  - kashi
+  - kuthe
+  - kevha
+  - kon
+  - काय
+  - कशासाठी
+  - कसा
+  - कशी
+  - कुठे
+  - केव्हा
+  - कोण

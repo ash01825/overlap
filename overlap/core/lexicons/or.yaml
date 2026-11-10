@@ -1,0 +1,50 @@
+# needs native-speaker review
+backchannel:
+  - haan
+  - aagyan
+  - thik achi
+  - thik
+  - achha
+  - aagya
+  - hmm
+  - ok
+  - ହଁ
+  - ଆଜ୍ଞା
+  - ଠିକ ଅଛି
+  - ଠିକ
+  - ଆଚ୍ଛା
+  - ହୁଁ
+stop:
+  - ruha
+  - rahantu
+  - na
+  - nahni
+  - gote minute
+  - thik na
+  - band karantu
+  - ରୁହ
+  - ରୁହନ୍ତୁ
+  - ନା
+  - ନାହିଁ
+  - ଗୋଟେ ମିନିଟ
+  - ବନ୍ଦ କରନ୍ତୁ
+contrast:
+  - kintu
+  - matra
+  - heparantu
+  - but
+  - କିନ୍ତୁ
+  - ମାତ୍ର
+question:
+  - kana
+  - kahinki
+  - kipari
+  - kouthi
+  - ketebele
+  - kie
+  - କଣ
+  - କାହିଁକି
+  - କିପରି
+  - କେଉଁଠି
+  - କେତେବେଳେ
+  - କିଏ

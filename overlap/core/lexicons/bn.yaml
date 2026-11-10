@@ -1,0 +1,58 @@
+# needs native-speaker review
+backchannel:
+  - hyan
+  - haan
+  - accha
+  - achha
+  - thik ache
+  - thik
+  - thik thik
+  - hmm
+  - ok
+  - হ্যাঁ
+  - আচ্ছা
+  - ঠিক আছে
+  - ঠিক
+  - ঠিক ঠিক
+  - হুঁ
+  - হুম
+stop:
+  - thamo
+  - thambun
+  - na
+  - ek minute
+  - daro
+  - daran
+  - ruko
+  - bondho korun
+  - থামো
+  - থামুন
+  - না
+  - এক মিনিট
+  - দাঁড়াও
+  - দাঁড়ান
+  - বন্ধ করুন
+contrast:
+  - kintu
+  - tobu
+  - tobuo
+  - but
+  - কিন্তু
+  - তবু
+  - তবুও
+question:
+  - ki
+  - keno
+  - ki bhabe
+  - kibhabe
+  - kothay
+  - kokhon
+  - ke
+  - kon
+  - কী
+  - কেন
+  - কিভাবে
+  - কোথায়
+  - কখন
+  - কে
+  - কোন

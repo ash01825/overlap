@@ -1,0 +1,82 @@
+# needs native-speaker review
+backchannel:
+  - haan
+  - ji
+  - haan ji
+  - haanji
+  - achha
+  - accha
+  - theek hai
+  - thik hai
+  - theek
+  - thik
+  - hmm
+  - ok
+  - sahi
+  - bilkul
+  - हाँ
+  - जी
+  - हाँ जी
+  - हाँजी
+  - अच्छा
+  - ठीक है
+  - ठीक
+  - हूँ
+  - हम्म
+  - सही
+  - बिल्कुल
+stop:
+  - ruko
+  - nahi
+  - nahin
+  - na
+  - bas
+  - ek minute
+  - thamo
+  - mat
+  - roko
+  - rukiye
+  - wait
+  - stop
+  - रुको
+  - नहीं
+  - ना
+  - बस
+  - एक मिनट
+  - थमो
+  - मत
+  - रोको
+  - रुकिए
+contrast:
+  - lekin
+  - par
+  - magar
+  - kintu
+  - parantu
+  - but
+  - लेकिन
+  - पर
+  - मगर
+  - किन्तु
+  - परन्तु
+question:
+  - kya
+  - kyun
+  - kyon
+  - kab
+  - kahan
+  - kaise
+  - kaun
+  - kitna
+  - kitne
+  - kitni
+  - kya?
+  - क्या
+  - क्यों
+  - कब
+  - कहाँ
+  - कैसे
+  - कौन
+  - कितना
+  - कितने
+  - कितनी

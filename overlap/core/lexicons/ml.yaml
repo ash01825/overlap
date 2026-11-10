@@ -1,0 +1,53 @@
+# needs native-speaker review
+backchannel:
+  - athe
+  - athe athe
+  - sheri
+  - sheri sheri
+  - sari
+  - athethe
+  - hmm
+  - ok
+  - അതെ
+  - അതെ അതെ
+  - ശരി
+  - ശരി ശരി
+  - ഹ്മ്
+stop:
+  - nilku
+  - nilkku
+  - nilkkuka
+  - venda
+  - vendaa
+  - nirathu
+  - nirathoo
+  - oru nimisham
+  - നില്‍ക്കൂ
+  - നില്‍ക്കു
+  - നില്‍ക്കുക
+  - വേണ്ട
+  - നിര്‍ത്തു
+  - ഒരു നിമിഷം
+contrast:
+  - pakshe
+  - ennal
+  - engilum
+  - but
+  - പക്ഷേ
+  - എന്നാല്‍
+  - എങ്കിലും
+question:
+  - entha
+  - enthukondu
+  - engane
+  - evide
+  - eppol
+  - aara
+  - aaru
+  - എന്താ
+  - എന്തുകൊണ്ട്
+  - എങ്ങനെ
+  - എവിടെ
+  - എപ്പോള്‍
+  - ആരാ
+  - ആര്

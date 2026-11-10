@@ -386,7 +386,7 @@ blocked_reason: ""
 id: T1.03
 title: Multi-script backchannel/stop/contrast/question lexicon + normalizer/matcher
 phase: 1
-status: todo
+status: done
 needs: [T0.03]
 reopens: []
 files:
@@ -413,10 +413,12 @@ done_when:
   - "lexicon data loaded at import via importlib.resources from package data converted to in-memory frozen structures (no file I/O at call time); load < 50 ms"
 evidence:
   - "make fast => pass; table test count >= 120"
-evidence_observed: []
+evidence_observed:
+  - "make fast => 352 passed, 1 warning in 0.58s"
+  - "table test count = 227 cases in TABLE_CASES (total 238 in test_lexicon.py, exceeding >= 120 requirement)"
 commit:
   msg: "T1.03: Indic lexicons and matcher"
-  sha: null
+  sha: "aa157acbebdff85e73c564b46f145584c7daa917"
 strikes: 0
 blocked_reason: ""
 ```

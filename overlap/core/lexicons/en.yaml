@@ -1,0 +1,48 @@
+# needs native-speaker review
+backchannel:
+  - yeah
+  - yep
+  - "yes"
+  - okay
+  - ok
+  - right
+  - alright
+  - mhm
+  - uh-huh
+  - uh huh
+  - got it
+  - sure
+  - cool
+  - exactly
+  - absolutely
+stop:
+  - wait
+  - stop
+  - hold on
+  - hang on
+  - "no"
+  - nope
+  - one second
+  - one minute
+  - wait wait
+  - don't
+  - pause
+  - shut up
+  - silence
+contrast:
+  - but
+  - however
+  - yet
+  - although
+  - though
+  - nevertheless
+question:
+  - what
+  - why
+  - how
+  - when
+  - where
+  - who
+  - which
+  - whom
+  - whose
