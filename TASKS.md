@@ -154,7 +154,7 @@ blocked_reason: ""
 id: T0.03
 title: Core types, Tuning constants, Clock/VirtualClock, CancelToken
 phase: 0
-status: todo
+status: done
 needs: [T0.01]
 reopens: []
 files:
@@ -183,10 +183,12 @@ done_when:
 evidence:
   - "make fast => pass"
   - "test_clock.py includes a 10-minute virtual-time test finishing in < 0.2 s real time"
-evidence_observed: []
+evidence_observed:
+  - "make fast => 96 passed, 1 warning in 0.44s"
+  - "test_clock.py::test_10_minute_virtual_time_under_200ms => PASSED in 0.11s"
 commit:
   msg: "T0.03: core types, Tuning, Clock/VirtualClock, CancelToken"
-  sha: null
+  sha: "6d535849357226186142cad59b2fc2220e5152c5"
 strikes: 0
 blocked_reason: ""
 ```
