@@ -198,7 +198,7 @@ blocked_reason: ""
 id: T0.04
 title: Ports (STT/TTS/LLM/Transport/VAD/Telemetry) + contract test suites
 phase: 0
-status: todo
+status: done
 needs: [T0.03]
 reopens: []
 files:
@@ -227,10 +227,12 @@ done_when:
   - "selfcheck test runs each suite against a deliberately broken in-test implementation and asserts the suite FAILS (suite has teeth)"
 evidence:
   - "make fast => pass; selfcheck shows >= 6 'suite detects broken impl' tests"
-evidence_observed: []
+evidence_observed:
+  - "make fast => 114 passed, 1 warning in 0.54s"
+  - "selfcheck shows 12 'suite detects broken impl' tests (exceeding >= 6 requirement): test_stt_contract_detects_broken_impl, test_tts_contract_detects_broken_impl, test_llm_contract_detects_broken_impl, test_transport_contract_detects_broken_impl, test_vad_contract_detects_broken_impl, test_telemetry_contract_detects_broken_impl, plus 6 granular failure-mode tests => all PASSED"
 commit:
   msg: "T0.04: port protocols and reusable contract suites"
-  sha: null
+  sha: "5a121eccd7768e7d23588df8e63da3142279266e"
 strikes: 0
 blocked_reason: ""
 ```
