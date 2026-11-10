@@ -1020,7 +1020,7 @@ blocked_reason: ""
 id: T4.02
 title: OverlapProcessor — one-line drop-in for Pipecat pipelines
 phase: 4
-status: todo
+status: done
 needs: [T2.04, T4.01]
 reopens: []
 files:
@@ -1050,10 +1050,12 @@ done_when:
 evidence:
   - "make fast => pass"
   - "make check => exit 0"
-evidence_observed: []
+evidence_observed:
+  - "make fast => 694 passed, 13 deselected in 2.71s"
+  - "make check => ruff check: All checks passed!; ruff format --check: 102 files already formatted; lint-imports: 1 kept, 0 broken; mypy --strict: Success: no issues found in 100 source files; pytest -m not live: 695 passed in 2.58s; dag_lint validate: OK, 25 tasks"
 commit:
   msg: "T4.02: Pipecat OverlapProcessor drop-in and stock baseline example"
-  sha: null
+  sha: "77b6642"
 strikes: 0
 blocked_reason: ""
 ```
