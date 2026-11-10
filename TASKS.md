@@ -975,7 +975,7 @@ blocked_reason: ""
 id: T4.01
 title: LiveKitTransport — user track in, agent track out, playout-position feedback
 phase: 4
-status: todo
+status: done
 needs: [T2.04, T0.04]
 reopens: [T0.04]
 files:
@@ -1004,10 +1004,13 @@ done_when:
   - "ports amended only if needed (reopens T0.04) with contract suite updated"
 evidence:
   - "make fast => pass"
-evidence_observed: []
+evidence_observed:
+  - "make fast => 677 passed, 13 deselected, 1 warning in 2.68s"
+  - "pytest tests/live/test_livekit_live.py -m live -s => 1 passed in 3.04s ([LIVEKIT CALIBRATION] Measured assumed_downstream_ms: 25 ms recorded in docs/CALIBRATION.md)"
+  - "make check => exit 0 (ruff clean, ruff format clean, lint-imports contract kept, mypy --strict clean, pytest 678 passed, dag_lint validate exit 0)"
 commit:
   msg: "T4.01: LiveKit audio transport with flush and playout position"
-  sha: null
+  sha: "3b7a74f9bd0ab745dd2289a11227c3be56e3066e"
 strikes: 0
 blocked_reason: ""
 ```
