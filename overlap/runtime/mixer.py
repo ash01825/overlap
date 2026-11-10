@@ -18,6 +18,7 @@ from overlap.core.audio import EchoGate, GainRamp
 from overlap.core.clock import Clock, TimerHandle
 from overlap.core.playout import PlayoutLedger, PlayoutSnapshot
 from overlap.core.types import AudioFrame, Tag, Tuning
+from overlap.ports.telemetry import TelemetrySink
 from overlap.ports.transport import AudioTransport
 from overlap.ports.tts import AudioChunk, AudioClip, TtsStream
 
@@ -33,12 +34,14 @@ class PlayoutMixer:
         tuning: Tuning | None = None,
         echo_gate: EchoGate | None = None,
         target_lookahead_ms: int | None = None,
+        telemetry: TelemetrySink | None = None,
     ) -> None:
         self._transport = transport
         self._clock = clock
         self._tuning = tuning or Tuning()
         self._ledger = ledger or PlayoutLedger(tuning=self._tuning)
         self._echo_gate = echo_gate
+        self._telemetry = telemetry
 
         self._sample_rate_hz = self._tuning.out_rate_hz
         self._frame_ms = self._tuning.frame_ms
@@ -69,6 +72,8 @@ class PlayoutMixer:
         self._current_turn_id = ""
         self._current_epoch = 0
         self._flushed_epochs: set[int] = set()
+        self._duck_pending_emit: bool = False
+        self._clip_first_sample_pending_emit: bool = False
 
         self._timer_handle: TimerHandle | None = None
         self._emitted_until_ns = self._clock.now_ns()
@@ -207,6 +212,7 @@ class PlayoutMixer:
         self._clip_buffer.extend(pcm)
         self._clip_tag = tag
         self._is_playing_clip = True
+        self._clip_first_sample_pending_emit = True
 
         if self._echo_gate is not None:
             start_ns = self._clock.now_ns()
@@ -252,6 +258,10 @@ class PlayoutMixer:
         Executed inline on fast path; never awaits or yields (INV-L2, INV-L13).
         """
         self._gain_ramp.set_target(gain, ramp_ms)
+        if gain < 1.0:
+            self._duck_pending_emit = True
+        else:
+            self._duck_pending_emit = False
 
     def duck(self, gain: float | None = None, ramp_ms: int | None = None) -> None:
         """Helper to apply ducking gain (INV-L3: default 0.3, <= 20 ms linear ramp)."""
@@ -405,4 +415,24 @@ class PlayoutMixer:
 
         self._ledger.record_emitted(self._frame_samples)
         self._transport.send_frame(frame)
+
+        if self._duck_pending_emit and self._gain_ramp.target_gain < 1.0:
+            self._duck_pending_emit = False
+            if self._telemetry is not None:
+                self._telemetry.emit(
+                    "duck.applied",
+                    now_ns,
+                    gain=self._gain_ramp.target_gain,
+                    epoch=self._current_epoch,
+                )
+
+        if self._clip_first_sample_pending_emit and bool(tag & Tag.SELF_BACKCHANNEL):
+            self._clip_first_sample_pending_emit = False
+            if self._telemetry is not None:
+                self._telemetry.emit(
+                    "bc.agent.clip_start",
+                    ts_ns,
+                    epoch=self._current_epoch,
+                )
+
         return True

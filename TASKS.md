@@ -1063,20 +1063,25 @@ blocked_reason: ""
 id: T4.03
 title: Telemetry — JSONL sink, metric derivation (t_duck/t_verdict/t_stop/FIR/bc timing)
 phase: 4
-status: todo
+status: done
 needs: [T2.04]
-reopens: []
+reopens: [T2.04]
 files:
   - overlap/core/metrics.py
+  - overlap/telemetry/__init__.py
   - overlap/telemetry/collector.py
   - overlap/telemetry/jsonl.py
+  - overlap/telemetry/report.py
   - tests/unit/core/test_metrics.py
+  - tests/unit/telemetry/__init__.py
   - tests/unit/telemetry/test_collector.py
 refs:
   - ARCHITECTURE.md#12
   - ARCHITECTURE.md#10
   - overlap/ports/telemetry.py
   - overlap/core/types.py
+  - overlap/runtime/engine.py
+  - tests/scenarios/test_golden.py
 failure_modes:
   - "sink blocks or raises on the fast path (disk I/O inline)"
   - "metric definitions drift from §12 (e.g. t_stop measured from verdict)"
@@ -1092,10 +1097,12 @@ done_when:
 evidence:
   - "make fast => pass"
   - "report CLI on a scenario log => table with all §12 metrics"
-evidence_observed: []
+evidence_observed:
+  - "make fast => 688 passed, 13 deselected, 1 warning in 2.75s (< 15 s)"
+  - "python -m overlap.telemetry.report <scenario_log.jsonl> => prints table with all 9 ARCHITECTURE §12 metrics (t_duck p95=20.0 ms PASS, t_verdict p95=172.0 ms PASS, t_stop p50=20.0 ms p95=20.0 ms PASS, false_interruption_rate 0.0% PASS, missed_interruption_rate 0.0% PASS, bc_timing 200.0 ms PASS, bc_rate 1.00/min PASS, truncation_error_words 0 words PASS, echo_false_duck 0 PASS; OVERALL: PASS)"
 commit:
   msg: "T4.03: telemetry sink, metric derivation, report CLI"
-  sha: null
+  sha: "ccfae36e531f3d944db69219f182731c85a7e35c"
 strikes: 0
 blocked_reason: ""
 ```

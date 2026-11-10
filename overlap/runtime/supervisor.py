@@ -438,12 +438,32 @@ class StreamSupervisor:
                 self._transport.flush_output()
             if self._flush_handler is not None:
                 self._flush_handler()
+            if self._telemetry is not None:
+                self._telemetry.emit(
+                    "yield.flush",
+                    self._clock.now_ns(),
+                    epoch=self._current_epoch,
+                )
 
         elif isinstance(effect, CancelTts):
             self._dispatch_cancel_tts()
+            if self._telemetry is not None:
+                self._telemetry.emit(
+                    "yield.cancel_sent",
+                    self._clock.now_ns(),
+                    target="tts",
+                    epoch=self._current_epoch,
+                )
 
         elif isinstance(effect, AbortLlm):
             self._dispatch_abort_llm()
+            if self._telemetry is not None:
+                self._telemetry.emit(
+                    "yield.cancel_sent",
+                    self._clock.now_ns(),
+                    target="llm",
+                    epoch=self._current_epoch,
+                )
 
         elif isinstance(effect, TruncateHistory):
             played_pos = effect.played_pos_ms
@@ -459,6 +479,13 @@ class StreamSupervisor:
                     played_pos = pos
             if self._history_truncator is not None:
                 self._history_truncator(played_pos)
+            if self._telemetry is not None:
+                self._telemetry.emit(
+                    "yield.truncate",
+                    self._clock.now_ns(),
+                    played_pos_ms=played_pos,
+                    epoch=self._current_epoch,
+                )
 
         elif isinstance(effect, ArmTimer):
             self.arm_timer(name=effect.name, deadline_ns=effect.deadline_ns)

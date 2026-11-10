@@ -124,8 +124,11 @@ class OverlapEngine:
                 clock=self._clock,
                 tuning=self._tuning,
                 echo_gate=self._echo_gate,
+                telemetry=self._telemetry,
             )
         )
+        if mixer is not None and mixer._telemetry is None and self._telemetry is not None:
+            mixer._telemetry = self._telemetry
         self._supervisor: StreamSupervisor = (
             supervisor
             if supervisor is not None
@@ -327,12 +330,22 @@ class OverlapEngine:
             # User speech onset detected!
             self._overlap_onset_ns = now_ns
             self._soft_tick_evaluated = False
+            if self._telemetry is not None:
+                self._telemetry.emit(
+                    "vad.onset",
+                    now_ns,
+                    is_echo=is_echo,
+                    tag=frame.tags.name or "NONE",
+                    epoch=self._fsm.epoch,
+                )
             onset_event = VadOnset(ts_ns=now_ns, tag=frame.tags, is_echo=is_echo)
             self._apply_event_fast_path(onset_event, now_ns)
 
         elif not is_speech and prev_user_speaking:
             # User speech offset detected!
             self._overlap_offset_ns = now_ns
+            if self._telemetry is not None:
+                self._telemetry.emit("vad.offset", now_ns, epoch=self._fsm.epoch)
             offset_event = VadOffset(ts_ns=now_ns)
             self._apply_event_fast_path(offset_event, now_ns)
 
@@ -357,11 +370,34 @@ class OverlapEngine:
                 fsm_state=self._fsm.state,
             )
             if bc_due is not None:
+                if self._telemetry is not None:
+                    self._telemetry.emit(
+                        "bc.agent.fire",
+                        now_ns,
+                        clip=bc_due.clip,
+                        lang=bc_due.lang,
+                        pause_start_ns=self._overlap_offset_ns,
+                        epoch=self._fsm.epoch,
+                    )
                 self._apply_event_fast_path(bc_due, now_ns)
 
     def _apply_event_fast_path(self, event: Any, now_ns: int) -> None:
         """Apply an event to FSM and immediately dispatch SetGain inline to PlayoutMixer."""
+        prev_state = self._fsm.state
         effects = self._fsm.transition(event, now_ns=now_ns)
+        new_state = self._fsm.state
+        if new_state == FsmState.YIELDED:
+            self._supervisor._current_epoch = self._fsm.epoch
+            self._mixer._current_epoch = self._fsm.epoch
+        if new_state != prev_state and self._telemetry is not None:
+            self._telemetry.emit(
+                "fsm.transition",
+                now_ns,
+                from_state=prev_state.value,
+                to_state=new_state.value,
+                event=type(event).__name__,
+                epoch=self._fsm.epoch,
+            )
 
         # Inline gain adjustment: delivers 20-40 ms ducking on speech onset (INV-L2)
         for eff in effects:
@@ -499,7 +535,34 @@ class OverlapEngine:
                 v_latency = (now_ns - self._overlap_onset_ns) / 1_000_000.0
                 self._verdict_latencies_ms.append(v_latency)
 
+            if self._telemetry is not None:
+                self._telemetry.emit(
+                    "verdict",
+                    now_ns,
+                    label=verdict.label.value,
+                    confidence=verdict.confidence,
+                    reason=verdict.reason,
+                    overlap_ms=verdict.overlap_ms,
+                    onset_ts_ns=self._overlap_onset_ns,
+                    partial_text=self._current_partial_text or "",
+                    epoch=self._fsm.epoch,
+                )
+
+            prev_state = self._fsm.state
             effects = self._fsm.transition(verdict, now_ns=now_ns)
+            new_state = cast(FsmState, self._fsm.state)
+            if new_state == FsmState.YIELDED:
+                self._supervisor._current_epoch = self._fsm.epoch
+                self._mixer._current_epoch = self._fsm.epoch
+            if new_state != prev_state and self._telemetry is not None:
+                self._telemetry.emit(
+                    "fsm.transition",
+                    now_ns,
+                    from_state=prev_state.value,
+                    to_state=new_state.value,
+                    event="Verdict",
+                    epoch=self._fsm.epoch,
+                )
             for eff in effects:
                 if isinstance(eff, SetGain):
                     self._mixer.set_gain(eff.gain, eff.ramp_ms)
@@ -518,7 +581,33 @@ class OverlapEngine:
         if isinstance(event, TimerFired):
             if event.name == "classify_cap" and self._fsm.state == FsmState.DUCKED:
                 # Watchdog cap fired: FSM forces fail-safe policy
+                if self._telemetry is not None:
+                    overlap_ms = max(0, int((now_ns - self._overlap_onset_ns) // 1_000_000))
+                    self._telemetry.emit(
+                        "verdict",
+                        now_ns,
+                        label=self._tuning.failsafe_bias.value,
+                        confidence=0.5,
+                        reason="classify_cap_failsafe",
+                        overlap_ms=overlap_ms,
+                        onset_ts_ns=self._overlap_onset_ns,
+                        epoch=self._fsm.epoch,
+                    )
+                prev_state = self._fsm.state
                 effects = self._fsm.transition(event, now_ns=now_ns)
+                new_state = cast(FsmState, self._fsm.state)
+                if new_state == FsmState.YIELDED:
+                    self._supervisor._current_epoch = self._fsm.epoch
+                    self._mixer._current_epoch = self._fsm.epoch
+                if new_state != prev_state and self._telemetry is not None:
+                    self._telemetry.emit(
+                        "fsm.transition",
+                        now_ns,
+                        from_state=prev_state.value,
+                        to_state=new_state.value,
+                        event="TimerFired",
+                        epoch=self._fsm.epoch,
+                    )
                 for eff in effects:
                     if isinstance(eff, SetGain):
                         self._mixer.set_gain(eff.gain, eff.ramp_ms)
