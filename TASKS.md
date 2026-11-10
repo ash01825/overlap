@@ -606,7 +606,7 @@ blocked_reason: ""
 id: T2.02
 title: StreamSupervisor — cancel tokens, timers, effect executor, quiescence check
 phase: 2
-status: todo
+status: done
 needs: [T0.05, T1.05]
 reopens: []
 files:
@@ -635,10 +635,11 @@ done_when:
   - "stale-epoch filter helper used by engine"
 evidence:
   - "make fast => pass"
-evidence_observed: []
+evidence_observed:
+  - "make fast => 559 passed, 5 deselected, 1 warning in 1.88s (< 15 s)"
 commit:
   msg: "T2.02: StreamSupervisor with cancel tokens, timers, effect executor"
-  sha: null
+  sha: "7d50a10c389594751c1acbd9d78c6380d8cea267"
 strikes: 0
 blocked_reason: ""
 ```
