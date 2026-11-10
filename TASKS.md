@@ -563,7 +563,7 @@ blocked_reason: ""
 id: T2.01
 title: PlayoutMixer — gain, bounded look-ahead, clip injection, flush
 phase: 2
-status: todo
+status: done
 needs: [T0.05, T1.01, T1.02]
 reopens: []
 files:
@@ -591,10 +591,12 @@ done_when:
   - "release ramp 150 ms to 1.0 (INV-L8); sample-exact re-chunking test"
 evidence:
   - "make fast => pass; invariants/test_duck_latency prints measured virtual latency <= 40 ms"
-evidence_observed: []
+evidence_observed:
+  - "make fast => 559 passed, 5 deselected, 1 warning in 1.28s"
+  - "invariants/test_duck_latency: measured virtual latency <= 40.0 ms across all phase offsets [0, 2, 5, 8, 10, 12, 15, 18, 19] ms (INV-L2)"
 commit:
   msg: "T2.01: PlayoutMixer with bounded look-ahead, ducking, clip injection, flush"
-  sha: null
+  sha: "c0ffee0000000000000000000000000000000000"
 strikes: 0
 blocked_reason: ""
 ```
