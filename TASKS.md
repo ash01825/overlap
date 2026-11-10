@@ -344,7 +344,7 @@ blocked_reason: ""
 id: T1.02
 title: PlayoutLedger + words-played truncation + SpeakingRateEstimator
 phase: 1
-status: todo
+status: done
 needs: [T0.03]
 reopens: []
 files:
@@ -372,10 +372,11 @@ done_when:
   - "synthetic ground truth tests: truncation error <= 1 word (INV-T1) across 200 seeded cases"
 evidence:
   - "make fast => pass, includes the 200-case INV-T1 test"
-evidence_observed: []
+evidence_observed:
+  - "make fast => 139 passed, 1 warning in 0.61s; test_truncate.py::test_synthetic_ground_truth_inv_t1_200_cases PASSED"
 commit:
   msg: "T1.02: playout ledger and truncation to heard text"
-  sha: null
+  sha: "f5c3afd4468f760dafa39aa92569b9176ca096ff"
 strikes: 0
 blocked_reason: ""
 ```
