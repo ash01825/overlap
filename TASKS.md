@@ -518,7 +518,7 @@ blocked_reason: ""
 id: T1.06
 title: BackchannelPredictor — pause/clause/energy trigger with pacing
 phase: 1
-status: todo
+status: done
 needs: [T1.01, T1.03]
 reopens: []
 files:
@@ -545,10 +545,11 @@ done_when:
   - "table-driven timeline tests (>= 20) incl. no-fire cases for each failure mode"
 evidence:
   - "make fast => pass"
-evidence_observed: []
+evidence_observed:
+  - "make fast => 491 passed, 1 deselected, 1 warning in 1.07s"
 commit:
   msg: "T1.06: agent backchannel predictor"
-  sha: null
+  sha: "7174d9e11d86582f4d71afa42496d5e19bd13d51"
 strikes: 0
 blocked_reason: ""
 ```
