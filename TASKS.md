@@ -242,7 +242,7 @@ blocked_reason: ""
 id: T0.05
 title: Fakes for all ports, seeded audio synth, FakeWebSocket JSONL replayer, scenario DSL
 phase: 0
-status: todo
+status: done
 needs: [T0.04]
 reopens: []
 files:
@@ -257,6 +257,7 @@ files:
   - tests/fixtures/scenario.py
   - tests/fixtures/wire/README.md
   - tests/unit/fakes/test_fakes.py
+  - tests/unit/fixtures/__init__.py
   - tests/unit/fixtures/test_audio.py
   - tests/unit/fixtures/test_scenario_dsl.py
 refs:
@@ -277,10 +278,11 @@ done_when:
   - "Scenario DSL: agent_says/user_overlap/user_turn/expect_state/expect_no_flush/expect_flush_within; returns Trace(states, effects, frames_out, telemetry)"
 evidence:
   - "make fast => pass, < 15 s"
-evidence_observed: []
+evidence_observed:
+  - "make fast => 137 passed, 1 warning in 0.62s (< 15 s)"
 commit:
   msg: "T0.05: port fakes, seeded audio synth, wire replayer, scenario DSL"
-  sha: null
+  sha: "e75bff4c808720da403f4a1a023db29f444336e3"
 strikes: 0
 blocked_reason: ""
 ```
