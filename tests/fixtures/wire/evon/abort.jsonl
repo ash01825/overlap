@@ -1,0 +1,4 @@
+{"t_ms": 0, "dir": "out", "kind": "text", "payload": "{\"model\": \"gemini-2.5-flash\", \"messages\": [{\"role\": \"user\", \"content\": \"Say 'hello world' and one sentence.\"}], \"stream\": true}"}
+{"t_ms": 1352, "dir": "in", "kind": "text", "payload": "data: {\"choices\":[{\"delta\":{\"content\":\"Hello world. This is my first sentence.\",\"role\":\"assistant\"},\"finish_reason\":\"stop\",\"index\":0}],\"created\":1794307848,\"id\":\"B_fyau7nKs35694PkbitsAc\",\"model\":\"gemini-2.5-flash\",\"object\":\"chat.completion.chunk\"}"}
+{"t_ms": 1352, "dir": "in", "kind": "text", "payload": "data: [DONE]"}
+{"t_ms": 1352, "dir": "out", "kind": "text", "payload": "{\"action\": \"abort\"}"}

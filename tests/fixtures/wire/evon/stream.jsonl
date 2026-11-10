@@ -1,0 +1,3 @@
+{"t_ms": 0, "dir": "out", "kind": "text", "payload": "{\"model\": \"gemini-2.5-flash\", \"messages\": [{\"role\": \"user\", \"content\": \"Say 'hello world' and one sentence.\"}], \"stream\": true}"}
+{"t_ms": 1169, "dir": "in", "kind": "text", "payload": "data: {\"choices\":[{\"delta\":{\"content\":\"Hello world. The sun is shining today.\",\"role\":\"assistant\"},\"finish_reason\":\"stop\",\"index\":0}],\"created\":1794307847,\"id\":\"Bvfyaq7HFZrz4-EPzfOa4Qk\",\"model\":\"gemini-2.5-flash\",\"object\":\"chat.completion.chunk\"}"}
+{"t_ms": 1170, "dir": "in", "kind": "text", "payload": "data: [DONE]"}

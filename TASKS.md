@@ -745,7 +745,7 @@ blocked_reason: ""
 id: T3.01
 title: Capture real Prisma/Timbre/Evon wire traffic -> docs/WIRE.md + fixtures
 phase: 3
-status: todo
+status: done
 gate: human
 needs: [T0.04]
 reopens: [T0.04]
@@ -779,10 +779,13 @@ evidence:
   - "ls tests/fixtures/wire/*/*.jsonl => >= 7 files, none with `assumed: true`"
   - "grep -rE 'api[_-]?key|Bearer|Authorization' tests/fixtures docs => no secret values"
   - "make fast => pass"
-evidence_observed: []
+evidence_observed:
+  - "ls tests/fixtures/wire/*/*.jsonl => 7 files (evon/abort.jsonl, evon/stream.jsonl, prisma/code_switch.jsonl, prisma/short_utterance.jsonl, prisma/silence.jsonl, timbre/cancel_mid_stream.jsonl, timbre/full_stream.jsonl); zero assumed fixtures"
+  - "grep -rEn 'api[_-]?key|Bearer|Authorization' tests/fixtures docs => 0 secret values (only sanitized placeholders and [REDACTED] tokens)"
+  - "make fast => 463 passed, 4 deselected, 1 warning in 1.95s (< 15s budget)"
 commit:
   msg: "T3.01: capture and document real Gnani wire contract (scrubbed fixtures)"
-  sha: null
+  sha: "c3c3715de79538408142df0e9d969a8cbe84222f"
 strikes: 0
 blocked_reason: ""
 ```
