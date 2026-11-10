@@ -842,7 +842,7 @@ blocked_reason: ""
 id: T3.03
 title: TimbreTtsAdapter — WS stream, cancel, word timings, batch synth for clips
 phase: 3
-status: todo
+status: done
 needs: [T3.01, T0.05]
 reopens: []
 files:
@@ -870,10 +870,11 @@ done_when:
   - "`synthesize()` returns AudioClip with exact sample count and rate for ClipCache"
 evidence:
   - "make fast => pass"
-evidence_observed: []
+evidence_observed:
+  - "make fast => 547 passed, 8 deselected, 1 warning in 1.36s"
 commit:
   msg: "T3.03: Timbre TTS adapter with cancel and word timings"
-  sha: null
+  sha: "6116dd01f1155ac1b8fb204654ee98ce500d2347"
 strikes: 0
 blocked_reason: ""
 ```
