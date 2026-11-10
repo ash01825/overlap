@@ -649,7 +649,7 @@ blocked_reason: ""
 id: T2.03
 title: TurnPipeline — ClauseChunker, streaming to TTS, history commit/truncate, ClipCache
 phase: 2
-status: todo
+status: done
 needs: [T0.05, T1.02, T2.02]
 reopens: []
 files:
@@ -681,10 +681,11 @@ done_when:
   - "`ClipCache.prepare(langs)` pre-synthesizes via TtsPort.synthesize, resamples to out_rate_hz, disk cache keyed (voice_id, lang, text, ssml); `get(lang)` is O(1), never awaits; miss returns None"
 evidence:
   - "make fast => pass"
-evidence_observed: []
+evidence_observed:
+  - "make fast => 646 passed, 12 deselected, 1 warning in 1.80s"
 commit:
   msg: "T2.03: TurnPipeline, ClauseChunker, history truncation commit, ClipCache"
-  sha: null
+  sha: "1f8f7d3b87997a05dc5e7401ac0ac3e65cad8eeb"
 strikes: 0
 blocked_reason: ""
 ```
