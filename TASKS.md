@@ -1164,7 +1164,7 @@ title: Blind A/B naturalness harness (stock Pipecat vs OVERLAP) + demo packaging
 phase: 4
 status: done
 needs: [T4.02, T4.03, T4.04, T3.02, T3.03, T3.04, T3.05]
-reopens: []
+reopens: [T0.01, T4.02]
 files:
   - overlap/bench/ab.py
   - overlap/bench/scripted_caller.py
@@ -1173,6 +1173,8 @@ files:
   - tests/unit/bench/test_ab.py
   - tests/unit/bench/test_scripted_caller.py
   - docs/DEMO.md
+  - docs/OVERLAP_Solution_Pitch.pdf
+  - docs/assets/*.png
   - Dockerfile
   - Makefile
 refs:

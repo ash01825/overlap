@@ -42,6 +42,10 @@ reports/
 reports/ab/
 *.wav
 *.pcm
+*.mp4
+*.opus
+audio/
+overlap_contact_sheet.png
 
 # IDE & OS files
 .idea/
