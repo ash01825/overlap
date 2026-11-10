@@ -1,0 +1,22 @@
+scenario_id: "03_long_explanation_with_pauses"
+title: "Caller gives long explanation with natural pauses (agent backchannels)"
+description: "Caller explains a multi-step issue for >4 seconds with natural 300ms pauses between clauses. OVERLAP emits a subtle agent backchannel during the pause without taking the floor."
+lang: "en-IN"
+persona_prompt: "You are a helpful Gnani banking assistant. Keep responses clear and natural."
+voice_id: "gnani-timbre-en-female-1"
+events:
+  - kind: "user_long_turn"
+    at_ms: 0
+    clauses:
+      - text: "Yesterday evening I tried transferring fifty thousand rupees from my mobile app to my landlord"
+        duration_ms: 2400
+        pause_after_ms: 320
+      - text: "and the amount got debited from my savings account immediately after entering the OTP"
+        duration_ms: 2300
+        pause_after_ms: 300
+      - text: "but the beneficiary still has not received the confirmation message yet"
+        duration_ms: 1800
+        pause_after_ms: 800
+    lang: "en-IN"
+    agent_reply: "I understand how concerning that is. Let me check the IMPS transaction reference status for you right away."
+    agent_reply_duration_ms: 2800

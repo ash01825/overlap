@@ -1,0 +1,30 @@
+scenario_id: "06_codeswitch_tamil_english"
+title: "Tamil-English code-switched backchannel ('sari') and barge-in"
+description: "Caller uses Tamil acknowledgement 'sari' mid-reply while listening to FD rates, then barges in with a Tamil-English question about premature withdrawal."
+lang: "ta-IN"
+persona_prompt: "You are a helpful Gnani banking assistant. Keep responses clear and natural."
+voice_id: "gnani-timbre-ta-female-1"
+events:
+  - kind: "user_utterance"
+    at_ms: 0
+    duration_ms: 1400
+    text: "Fixed deposit interest rate enna irukku ippo?"
+    lang: "ta-IN"
+    agent_reply: "Oru varusha fixed depositukku eezhu puḷḷi aindu sadhaveedham interest kidaikkum matrum senior citizensukku kooduthal laabam undu."
+    agent_reply_duration_ms: 3600
+  - kind: "user_overlap"
+    at_ms: 2050
+    offset_into_reply_ms: 550
+    duration_ms: 200
+    text: "sari"
+    lang: "ta-IN"
+    ground_truth: "BACKCHANNEL"
+  - kind: "user_overlap"
+    at_ms: 3300
+    offset_into_reply_ms: 1800
+    duration_ms: 860
+    text: "oru nimisham naduvula close panna penalty irukka"
+    lang: "ta-IN"
+    ground_truth: "INTERRUPT"
+    followup_reply: "Aamaam, premature withdrawalukku oru sadhaveedham penalty varum."
+    followup_reply_duration_ms: 2200

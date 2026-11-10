@@ -1,0 +1,30 @@
+scenario_id: "05_codeswitch_hinglish"
+title: "Hinglish code-switched acknowledgement then interruption"
+description: "Caller code-switches between Hindi and English ('accha okay' mid-reply followed later by 'wait ek second EMI option batao'). Tests both backchannel resilience and real barge-in."
+lang: "hi-IN"
+persona_prompt: "You are a helpful Gnani banking assistant. Keep responses clear and natural."
+voice_id: "gnani-timbre-hi-female-1"
+events:
+  - kind: "user_utterance"
+    at_ms: 0
+    duration_ms: 1300
+    text: "Mere credit card statement ka total due kitna hai?"
+    lang: "hi-IN"
+    agent_reply: "Is mahine aapka total statement due chaalis hazaar rupaye hai aur due date पंद्रह tareekh hai."
+    agent_reply_duration_ms: 3400
+  - kind: "user_overlap"
+    at_ms: 1850
+    offset_into_reply_ms: 450
+    duration_ms: 240
+    text: "accha"
+    lang: "hi-IN"
+    ground_truth: "BACKCHANNEL"
+  - kind: "user_overlap"
+    at_ms: 3100
+    offset_into_reply_ms: 1700
+    duration_ms: 880
+    text: "wait ek second isko EMI mein convert kar sakte hain kya"
+    lang: "hi-IN"
+    ground_truth: "INTERRUPT"
+    followup_reply: "Haan bilkul, aap is bill ko cheh ya baarah mahine ki aasan EMI mein badal sakte hain."
+    followup_reply_duration_ms: 2600

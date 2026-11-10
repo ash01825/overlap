@@ -1,0 +1,24 @@
+scenario_id: "04_side_talk_noise"
+title: "Brief side-talk / background cough during agent reply"
+description: "While agent is reading out branch details, a brief 140ms non-speech / side-talk burst occurs and stops before STT yields a real command. Agent ducks briefly and resumes."
+lang: "en-IN"
+persona_prompt: "You are a helpful Gnani banking assistant. Keep responses clear and natural."
+voice_id: "gnani-timbre-en-female-1"
+events:
+  - kind: "user_utterance"
+    at_ms: 0
+    duration_ms: 1200
+    text: "What are the working hours for the Indiranagar branch?"
+    lang: "en-IN"
+    agent_reply: "The Indiranagar branch is open Monday through Saturday from nine thirty in the morning until four thirty in the afternoon."
+    agent_reply_duration_ms: 3400
+  - kind: "user_overlap"
+    at_ms: 2100
+    offset_into_reply_ms: 800
+    duration_ms: 140
+    text: ""
+    lang: "en-IN"
+    ground_truth: "BACKCHANNEL"
+  - kind: "silence"
+    at_ms: 5200
+    duration_ms: 500

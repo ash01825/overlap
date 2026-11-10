@@ -1162,7 +1162,7 @@ blocked_reason: ""
 id: T4.05
 title: Blind A/B naturalness harness (stock Pipecat vs OVERLAP) + demo packaging
 phase: 4
-status: todo
+status: done
 needs: [T4.02, T4.03, T4.04, T3.02, T3.03, T3.04, T3.05]
 reopens: []
 files:
@@ -1202,10 +1202,13 @@ evidence:
   - "make fast => pass"
   - "make check => exit 0"
   - "python -m overlap.bench.ab --dry-run => prints blinded assignment table + stimulus-identity check OK"
-evidence_observed: []
+evidence_observed:
+  - "make fast => 714 passed, 13 deselected, 1 warning in 7.73s"
+  - "make check => exit 0 (715 passed, 1 skipped, 11 deselected in 7.70s; ruff, mypy --strict, lint-imports, dag_lint validate all clean)"
+  - "python -m overlap.bench.ab --dry-run => Blinded A/B Assignment Table (8 pairs) + stimulus-identity check OK (8 scenarios verified, seed=42)"
 commit:
   msg: "T4.05: blind A/B harness, scripted caller, demo packaging"
-  sha: null
+  sha: "5afab7cf7a9572f44c8cd587802097840964441f"
 strikes: 0
 blocked_reason: ""
 ```

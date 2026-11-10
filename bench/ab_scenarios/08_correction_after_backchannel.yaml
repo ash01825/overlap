@@ -1,0 +1,30 @@
+scenario_id: "08_correction_after_backchannel"
+title: "Caller says 'hmm' then interrupts to correct city name"
+description: "Caller listens to delivery address confirmation, says 'hmm', then realizes the city is wrong and barges in with 'no wait change the city to Pune'."
+lang: "en-IN"
+persona_prompt: "You are a helpful Gnani banking assistant. Keep responses clear and natural."
+voice_id: "gnani-timbre-en-female-1"
+events:
+  - kind: "user_utterance"
+    at_ms: 0
+    duration_ms: 1300
+    text: "Where is my replacement debit card being dispatched?"
+    lang: "en-IN"
+    agent_reply: "Your replacement debit card is scheduled for dispatch to your registered Mumbai residential address within three working days."
+    agent_reply_duration_ms: 3600
+  - kind: "user_overlap"
+    at_ms: 1950
+    offset_into_reply_ms: 550
+    duration_ms: 200
+    text: "hmm"
+    lang: "en-IN"
+    ground_truth: "BACKCHANNEL"
+  - kind: "user_overlap"
+    at_ms: 3050
+    offset_into_reply_ms: 1650
+    duration_ms: 900
+    text: "no wait please send it to my Pune office address instead"
+    lang: "en-IN"
+    ground_truth: "INTERRUPT"
+    followup_reply: "Got it, I will update the delivery destination to your Pune office address right now."
+    followup_reply_duration_ms: 2400

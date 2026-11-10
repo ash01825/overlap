@@ -1,5 +1,5 @@
 SHELL := /bin/bash
-.PHONY: all env-check fast check lint format test
+.PHONY: all env-check fast check lint format test demo
 
 all: fast
 
@@ -33,5 +33,8 @@ lint: env-check
 format: env-check
 	ruff check --fix .
 	ruff format .
+
+demo: env-check
+	python -m overlap.bench.ab --dry-run
 
 test: fast

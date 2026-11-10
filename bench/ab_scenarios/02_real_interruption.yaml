@@ -1,0 +1,23 @@
+scenario_id: "02_real_interruption"
+title: "Real barge-in interruption mid-explanation"
+description: "Caller interrupts the agent mid-sentence with a topic change ('rukiye mujhe credit card block karna hai'). Agent must stop within budget and truncate history to heard words."
+lang: "hi-IN"
+persona_prompt: "You are a helpful Gnani banking assistant. Keep responses clear and natural."
+voice_id: "gnani-timbre-hi-female-1"
+events:
+  - kind: "user_utterance"
+    at_ms: 0
+    duration_ms: 1200
+    text: "Home loan ke interest rates bataiye"
+    lang: "hi-IN"
+    agent_reply: "Hamare home loan ki shuruaat aath dashamlav paanch pratishat prati varsh se hoti hai aur processing fee bilkul zero hai is mahine."
+    agent_reply_duration_ms: 3600
+  - kind: "user_overlap"
+    at_ms: 2000
+    offset_into_reply_ms: 700
+    duration_ms: 920
+    text: "rukiye pehle mera credit card turant block kijiye"
+    lang: "hi-IN"
+    ground_truth: "INTERRUPT"
+    followup_reply: "Zaroor, main abhi aapka credit card block karne ki prakriya shuru karti hoon."
+    followup_reply_duration_ms: 2200
