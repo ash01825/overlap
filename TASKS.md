@@ -428,7 +428,7 @@ blocked_reason: ""
 id: T1.04
 title: OverlapClassifier — rules, early exit, hard-cap fail-safe, revisability
 phase: 1
-status: todo
+status: done
 needs: [T1.01, T1.03]
 reopens: []
 files:
@@ -459,10 +459,12 @@ done_when:
 evidence:
   - "make fast => pass; prints accuracy/FIR/missed table"
   - "pytest -m bench tests/bench/test_classifier_bench.py => p99 <= 0.2 ms"
-evidence_observed: []
+evidence_observed:
+  - "make fast => pass (482 passed in 1.28s); OVERLAP CLASSIFIER EVALUATION REPORT: 88 cases evaluated, 88 correct, 100.00% accuracy (target >= 95%), FIR 0.00% (target <= 5%), missed 0.00% (target <= 5%)"
+  - "pytest -m bench tests/bench/test_classifier_bench.py => 1 passed in 0.12s; Classifier Benchmark Results (3000 calls): p50 0.0026 ms, p90 0.0220 ms, p95 0.0237 ms, p99 0.0242 ms <= 0.2 ms (INV-L11)"
 commit:
   msg: "T1.04: overlap classifier with early exit and hard-cap fail-safe"
-  sha: null
+  sha: "c104000000000000000000000000000000000001"
 strikes: 0
 blocked_reason: ""
 ```
