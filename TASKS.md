@@ -884,7 +884,7 @@ blocked_reason: ""
 id: T3.04
 title: EvonLlmAdapter — streaming deltas and abort
 phase: 3
-status: todo
+status: done
 needs: [T3.01, T0.05]
 reopens: []
 files:
@@ -910,10 +910,11 @@ done_when:
   - "errors map to a typed LlmError the engine handles (canned apology, §14)"
 evidence:
   - "make fast => pass"
-evidence_observed: []
+evidence_observed:
+  - "make fast => 561 passed, 8 deselected, 1 warning in 1.51s"
 commit:
   msg: "T3.04: Evon LLM streaming adapter with abort"
-  sha: null
+  sha: "5bbb102eb58ce9ace3e3c4e7f156cffe3918606d"
 strikes: 0
 blocked_reason: ""
 ```
