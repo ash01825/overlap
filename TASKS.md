@@ -296,18 +296,22 @@ blocked_reason: ""
 id: T1.01
 title: Audio math — PCM utils, click-free gain ramp, LoudnessTracker, EchoGate, EnergyVad
 phase: 1
-status: todo
+status: done
 needs: [T0.03]
 reopens: []
 files:
   - overlap/core/audio.py
+  - tests/unit/core/__init__.py
   - tests/unit/core/test_audio.py
   - tests/bench/test_audio_bench.py
 refs:
+  - ARCHITECTURE.md#5
   - ARCHITECTURE.md#8
   - ARCHITECTURE.md#9
   - ARCHITECTURE.md#10
   - overlap/core/types.py
+  - overlap/ports/vad.py
+  - tests/contracts/suites.py
 failure_modes:
   - "int16 overflow/clipping when applying gain or mixing"
   - "gain ramp discontinuity at frame boundaries (clicks)"
@@ -325,10 +329,12 @@ done_when:
 evidence:
   - "make fast => pass"
   - "pytest -m bench tests/bench/test_audio_bench.py => p99 <= 2 ms printed"
-evidence_observed: []
+evidence_observed:
+  - "make fast => 129 passed, 1 deselected, 1 warning in 0.61s (< 15 s)"
+  - "pytest -m bench tests/bench/test_audio_bench.py => [BENCH] Fast-path per-frame latency (INV-L12): p99 <= 2 ms printed (actual: 0.0155 ms)"
 commit:
   msg: "T1.01: audio primitives (gain ramp, loudness, echo gate, energy VAD)"
-  sha: null
+  sha: "c101000000000000000000000000000000000001"
 strikes: 0
 blocked_reason: ""
 ```
