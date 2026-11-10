@@ -62,7 +62,7 @@ def classify(
         analysis.stop_hit
         or analysis.contrast_hit
         or analysis.question
-        or len(analysis.bc_tokens) > 0
+        or analysis.is_pure_backchannel
     )
 
     # Conservative candidate check for Rule 5 (quiet + low STT confidence + no lexicon hit)
@@ -220,7 +220,7 @@ def classify(
                 decided_at_ns=decided_at_ns,
             )
 
-        if features.overlap_ms < tuning.classify_cap_ms:
+        if not is_sidetalk_candidate and features.overlap_ms < tuning.classify_cap_ms:
             return Verdict(
                 label=Label.PENDING,
                 confidence=0.5,

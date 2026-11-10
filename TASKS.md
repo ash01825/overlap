@@ -1114,7 +1114,7 @@ blocked_reason: ""
 id: T4.04
 title: Labelled overlap corpus + offline replay evaluator + Tuning sweep
 phase: 4
-status: todo
+status: done
 needs: [T4.03, T1.04]
 reopens: [T1.04]
 files:
@@ -1147,10 +1147,12 @@ done_when:
 evidence:
   - "make fast => pass"
   - "python -m overlap.bench.replay => prints metrics and PASS/FAIL against targets"
-evidence_observed: []
+evidence_observed:
+  - "make fast => 698 passed, 13 deselected, 1 warning in 4.87s (< 15 s)"
+  - "python -m overlap.bench.replay => prints metrics (240 cases across 10 languages, 235/240 = 97.92% accuracy, FIR 0.00% <= 5.0% PASS, missed_interruption_rate 0.00% <= 5.0% PASS, held-out split n=60 FIR 0.00% PASS, missed 0.00% PASS, 3x3 confusion matrix, 10 per-language rows; OVERALL: PASS)"
 commit:
   msg: "T4.04: labelled corpus, replay evaluator, threshold sweep"
-  sha: null
+  sha: "52d20e8ba51b418a7ff974681645dbd559c9ba8f"
 strikes: 0
 blocked_reason: ""
 ```
