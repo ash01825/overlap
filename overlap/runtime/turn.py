@@ -14,7 +14,9 @@ Per ARCHITECTURE §8.3, §9, §10:
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 
 from overlap.core.clock import CancelToken
 from overlap.core.truncate import (
@@ -282,6 +284,7 @@ class TurnPipeline:
         tuning: Tuning | None = None,
         rate_est: SpeakingRateEstimator | None = None,
         chunker: ClauseChunker | None = None,
+        audio_chunk_handler: Callable[[AudioChunk], Any] | None = None,
     ) -> None:
         self._llm: LlmPort = llm
         self._tts: TtsPort = tts
@@ -291,6 +294,7 @@ class TurnPipeline:
         self._tuning: Tuning = tuning or Tuning()
         self._rate_est: SpeakingRateEstimator = rate_est or SpeakingRateEstimator()
         self._chunker: ClauseChunker = chunker or ClauseChunker()
+        self._audio_chunk_handler: Callable[[AudioChunk], Any] | None = audio_chunk_handler
 
         self._history: list[Message] = []
         self._cancelled_user_text: str = ""
@@ -396,8 +400,13 @@ class TurnPipeline:
 
     def _handle_audio_chunk(self, chunk: AudioChunk) -> None:
         """Ingest synthesized audio chunk and aggregate word timings into ClauseAudio."""
-        if chunk.epoch != self._current_epoch:
+        if self._current_epoch == 0:
+            self._current_epoch = chunk.epoch
+        elif chunk.epoch != self._current_epoch:
             return  # Drop stale-epoch audio chunk
+
+        if self._audio_chunk_handler is not None:
+            self._audio_chunk_handler(chunk)
 
         chunk_dur_ms = int((len(chunk.pcm) / (chunk.sample_rate * 2)) * 1000)
 

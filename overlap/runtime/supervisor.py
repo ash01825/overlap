@@ -446,8 +446,19 @@ class StreamSupervisor:
             self._dispatch_abort_llm()
 
         elif isinstance(effect, TruncateHistory):
+            played_pos = effect.played_pos_ms
+            if played_pos <= 0 and self._mixer is not None and hasattr(self._mixer, "ledger"):
+                played_pos = self._mixer.ledger.snapshot().played_ms
+            elif (
+                played_pos <= 0
+                and self._transport is not None
+                and hasattr(self._transport, "playout_position_ms")
+            ):
+                pos = self._transport.playout_position_ms()
+                if pos is not None:
+                    played_pos = pos
             if self._history_truncator is not None:
-                self._history_truncator(effect.played_pos_ms)
+                self._history_truncator(played_pos)
 
         elif isinstance(effect, ArmTimer):
             self.arm_timer(name=effect.name, deadline_ns=effect.deadline_ns)
@@ -456,15 +467,16 @@ class StreamSupervisor:
             self.cancel_timer(name=effect.name)
 
         elif isinstance(effect, PlayClip):
-            if self._mixer is not None and hasattr(self._mixer, "play_clip"):
-                self._mixer.play_clip(clip=effect.clip, tag=effect.tag)
-            elif self._clip_handler is not None:
-                self._clip_handler(effect.clip, effect.tag)
+            clip = effect.clip
+            if self._clip_handler is not None:
+                clip = self._clip_handler(effect.clip, effect.tag)
+            if clip is not None and self._mixer is not None and hasattr(self._mixer, "play_clip"):
+                self._mixer.play_clip(clip=clip, tag=effect.tag)
 
         elif isinstance(effect, FadeOutClip):
             if self._mixer is not None and hasattr(self._mixer, "fade_out_clip"):
                 self._mixer.fade_out_clip(dur_ms=effect.dur_ms)
-            elif self._fade_handler is not None:
+            if self._fade_handler is not None:
                 self._fade_handler(effect.dur_ms)
 
         elif isinstance(effect, StartPlayout):

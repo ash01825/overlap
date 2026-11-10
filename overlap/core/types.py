@@ -357,6 +357,7 @@ class Tuning:
     sidetalk_db: float = -9.0
     failsafe_bias: Label = Label.INTERRUPT
     barge_in_thinking_ms: int = 100
+    stock_stop_ms: int = 250
 
     # Interruption & Cancellation (INV-L5, INV-L6, INV-L7)
     interrupt_stop_cap_ms: int = 40

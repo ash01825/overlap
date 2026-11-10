@@ -695,7 +695,7 @@ blocked_reason: ""
 id: T2.04
 title: OverlapEngine wiring + 11 golden hermetic scenarios + invariants suite
 phase: 2
-status: todo
+status: done
 needs: [T1.04, T1.05, T1.06, T2.01, T2.02, T2.03]
 reopens: [T1.04, T1.05, T1.06, T2.01, T2.02, T2.03]
 files:
@@ -704,7 +704,7 @@ files:
   - tests/scenarios/test_golden.py
   - tests/invariants/test_stop_latency.py
   - tests/invariants/test_no_leak.py
-  - overlap/core/*.py
+  - overlap/core/types.py
   - overlap/runtime/*.py
 refs:
   - ARCHITECTURE.md#3
@@ -732,10 +732,14 @@ done_when:
 evidence:
   - "make fast => pass; scenario table printout with measured virtual latencies per scenario"
   - "make check => exit 0"
-evidence_observed: []
+evidence_observed:
+  - "make fast => pass in 2.03s (< 15s ceiling); 665 passed, 12 deselected, 1 warning"
+  - "test_scenario_summary_table_printout: 11/11 golden hermetic scenarios pass with verified virtual latencies (duck <= 40 ms, classify <= 400 ms, stop <= 40 ms, 0 leak frames, supervisor quiescent)"
+  - "AST invariant test_engine_fast_path_synchronous_no_await confirms 0 awaits in handle_frame, _apply_event_fast_path, _reclassify_overlap"
+  - "make check => exit 0 (ruff check clean, ruff format clean, lint-imports kept, mypy strict 87 files clean, 666 passed in 2.61s, dag_lint validate OK)"
 commit:
   msg: "T2.04: OverlapEngine and golden hermetic scenarios"
-  sha: null
+  sha: "e046cfe00c02cf1cc8a96d1ac791b5451eb545bf"
 strikes: 0
 blocked_reason: ""
 ```
