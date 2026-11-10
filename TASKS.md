@@ -918,7 +918,7 @@ blocked_reason: ""
 id: T3.05
 title: SileroVad adapter (ONNX, 20 ms hop) with EnergyVad fallback
 phase: 3
-status: todo
+status: done
 needs: [T0.04, T1.01]
 reopens: []
 files:
@@ -945,10 +945,12 @@ done_when:
 evidence:
   - "make fast => pass"
   - "pytest -m bench tests/bench/test_vad_bench.py => p99 <= 2 ms"
-evidence_observed: []
+evidence_observed:
+  - "make fast => 473 passed, 2 deselected, 1 warning in 1.06s"
+  - "pytest -m bench tests/bench/test_vad_bench.py => 2 passed in 0.11s, SileroVad p99=0.011 ms <= 2 ms, EnergyVad fallback p99=0.009 ms <= 2 ms"
 commit:
   msg: "T3.05: Silero VAD adapter with energy fallback"
-  sha: null
+  sha: "61d962e0b58503d5d74bc3d0ae5d528ea4761ae5"
 strikes: 0
 blocked_reason: ""
 ```
