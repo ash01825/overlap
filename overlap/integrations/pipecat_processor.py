@@ -33,6 +33,7 @@ from overlap.core.types import (
     AudioFrame,
     FlushPlayout,
     FsmState,
+    SttEvent,
     Tag,
     Tuning,
 )
@@ -248,6 +249,19 @@ def _is_input_audio_frame(frame: Any) -> bool:
     if cls_name in ("InputAudioRawFrame", "UserAudioRawFrame"):
         return True
     return isinstance(frame, AudioRawFrame) and not isinstance(frame, OutputAudioRawFrame)
+
+
+def _is_interim_transcription_frame(frame: Any) -> bool:
+    return (
+        isinstance(frame, InterimTranscriptionFrame)
+        or type(frame).__name__ == "InterimTranscriptionFrame"
+    )
+
+
+def _is_final_transcription_frame(frame: Any) -> bool:
+    if _is_interim_transcription_frame(frame):
+        return False
+    return isinstance(frame, TranscriptionFrame) or type(frame).__name__ == "TranscriptionFrame"
 
 
 class _PipecatBridgeTransport(AudioTransport):
@@ -627,7 +641,29 @@ class OverlapProcessor:
                 self._engine.handle_frame(af)
             return
 
-        # 5. All other frames pass through in order
+        # 5. Upstream STT transcription frames: feed OverlapEngine and pass through
+        if (
+            _is_interim_transcription_frame(frame) or _is_final_transcription_frame(frame)
+        ) and self._engine is not None:
+            text = str(getattr(frame, "text", ""))
+            lang = getattr(frame, "language", None) or getattr(frame, "lang", None)
+            conf_raw = getattr(frame, "confidence", None)
+            if conf_raw is None:
+                conf_raw = getattr(frame, "conf", None)
+            conf = float(conf_raw) if conf_raw is not None else None
+            self._engine.handle_stt_event(
+                SttEvent(
+                    kind=("partial" if _is_interim_transcription_frame(frame) else "final"),
+                    text=text,
+                    lang=lang,
+                    conf=conf,
+                    ts_ns=self._clock.now_ns(),
+                )
+            )
+            await self.push_frame(frame, direction)
+            return
+
+        # 6. All other frames pass through in order
         await self.push_frame(frame, direction)
 
 

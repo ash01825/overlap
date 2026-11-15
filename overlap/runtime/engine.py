@@ -139,9 +139,12 @@ class OverlapEngine:
                 transport=self._transport,
                 clip_handler=self._resolve_clip,
                 fade_handler=self._handle_fade_out_clip,
+                overlap_window_handler=self._handle_overlap_window,
                 on_event=self._handle_supervisor_event,
             )
         )
+        if supervisor is not None and supervisor._overlap_window_handler is None:
+            supervisor._overlap_window_handler = self._handle_overlap_window
         self._turn_pipeline: TurnPipeline = (
             turn_pipeline
             if turn_pipeline is not None
@@ -183,6 +186,8 @@ class OverlapEngine:
         self._transport_recv_task: asyncio.Task[None] | None = None
         self._drain_check_handle: Any = None
         self._stopped: bool = False
+        self._tts_finished: bool = False
+        self._overlap_window_open: bool = False
 
         # Diagnostic counters & metrics
         self._duck_latencies_ms: list[float] = []
@@ -296,8 +301,9 @@ class OverlapEngine:
         """
         now_ns = frame.ts_ns if frame.ts_ns > 0 else self._clock.now_ns()
 
-        # 1. Update EchoGate and LoudnessTracker reference RMS from agent playout
-        ref_rms = self._loudness_tracker._agent_rms
+        # 1. Update EchoGate and LoudnessTracker reference RMS from active agent playout
+        active_agent_rms = self._loudness_tracker._agent_rms if self._mixer.is_playing else 0.0
+        ref_rms = active_agent_rms * self._mixer.current_gain
 
         # 2. Check for self-audio / echo suppression
         is_echo = False
@@ -330,6 +336,8 @@ class OverlapEngine:
             # User speech onset detected!
             self._overlap_onset_ns = now_ns
             self._soft_tick_evaluated = False
+            if self._fsm.state == FsmState.SPEAKING:
+                self._clear_overlap_partial_state()
             if self._telemetry is not None:
                 self._telemetry.emit(
                     "vad.onset",
@@ -381,8 +389,19 @@ class OverlapEngine:
                     )
                 self._apply_event_fast_path(bc_due, now_ns)
 
+        # 8. Drain transition to LISTENING once final TTS audio finishes playing out
+        if (
+            self._tts_finished
+            and not self._mixer.is_playing
+            and self._fsm.state in (FsmState.SPEAKING, FsmState.DUCKED)
+        ):
+            self._tts_finished = False
+            self._apply_event_fast_path(AgentAudioDrained(), now_ns)
+
     def _apply_event_fast_path(self, event: Any, now_ns: int) -> None:
         """Apply an event to FSM and immediately dispatch SetGain inline to PlayoutMixer."""
+        if isinstance(event, EndOfTurn):
+            self._tts_finished = False
         prev_state = self._fsm.state
         effects = self._fsm.transition(event, now_ns=now_ns)
         new_state = self._fsm.state
@@ -411,6 +430,26 @@ class OverlapEngine:
         # State-specific reactions
         self._on_fsm_state_changed(now_ns)
 
+    def _clear_overlap_partial_state(self) -> None:
+        """Reset transient partial/final transcript fields for a fresh overlap."""
+        self._current_partial_text = None
+        self._current_partial_ts_ns = 0
+        self._current_partial_conf = None
+        self._current_partial_lang = None
+
+    def _handle_overlap_window(self, is_open: bool) -> None:
+        """Track supervisor overlap window open/close transitions and emit telemetry."""
+        self._overlap_window_open = is_open
+        if not is_open:
+            self._clear_overlap_partial_state()
+        if self._telemetry is not None:
+            self._telemetry.emit(
+                "overlap.window",
+                self._clock.now_ns(),
+                open=is_open,
+                epoch=self._fsm.epoch,
+            )
+
     def _on_fsm_state_changed(self, now_ns: int) -> None:
         """Respond to FSM state updates."""
         current_state = self._fsm.state
@@ -418,9 +457,9 @@ class OverlapEngine:
             self._predictor.set_fsm_state(current_state)
 
         if current_state == FsmState.LISTENING:
-            self._current_partial_text = None
-            self._current_partial_conf = None
-            self._current_partial_lang = None
+            self._clear_overlap_partial_state()
+            self._overlap_onset_ns = 0
+            self._tts_finished = False
 
     # =========================================================================
     # STT Event Ingestion & Overlap Classification
@@ -451,35 +490,64 @@ class OverlapEngine:
 
             # If SPEAKING: check for late escalation
             elif self._fsm.state == FsmState.SPEAKING:
-                partial_ev = SttPartial(
-                    text=event.text,
-                    lang=event.lang,
-                    conf=event.conf,
-                    ts_ns=now_ns,
-                )
-                effects = self._fsm.transition(partial_ev, now_ns=now_ns)
-                for eff in effects:
-                    if isinstance(eff, SetGain):
-                        self._mixer.set_gain(eff.gain, eff.ramp_ms)
-                if effects:
-                    self._supervisor.execute_effects(effects)
-                if cast(FsmState, self._fsm.state) == FsmState.DUCKED:
-                    self._reclassify_overlap(now_ns, is_final=False)
+                self._handle_speaking_escalation(event, now_ns, is_final=False)
 
         elif event.kind == "final":
             self._current_partial_text = event.text
+            self._current_partial_ts_ns = now_ns
+            self._current_partial_conf = event.conf
+            self._current_partial_lang = event.lang
             if self._fsm.state == FsmState.DUCKED:
                 self._reclassify_overlap(now_ns, is_final=True)
+            elif self._fsm.state == FsmState.SPEAKING:
+                self._handle_speaking_escalation(event, now_ns, is_final=True)
             elif self._fsm.state in (FsmState.LISTENING, FsmState.BACKCHANNELING):
                 # Conversational turn concluded: trigger EndOfTurn
                 self._apply_event_fast_path(EndOfTurn(final=event), now_ns)
 
-    def _reclassify_overlap(self, now_ns: int, is_final: bool = False) -> None:
+    def _handle_speaking_escalation(self, event: SttEvent, now_ns: int, *, is_final: bool) -> None:
+        """Check partial/final transcript for late escalation from SPEAKING to DUCKED."""
+        prev_state = self._fsm.state
+        partial_ev = SttPartial(
+            text=event.text,
+            lang=event.lang,
+            conf=event.conf,
+            ts_ns=now_ns,
+        )
+        effects = self._fsm.transition(partial_ev, now_ns=now_ns)
+        new_state = self._fsm.state
+        if new_state != prev_state and new_state == FsmState.DUCKED:
+            if self._overlap_onset_ns == 0:
+                self._overlap_onset_ns = self._fsm.context.last_backchannel_ns or now_ns
+            self._soft_tick_evaluated = False
+            if self._telemetry is not None:
+                self._telemetry.emit(
+                    "fsm.transition",
+                    now_ns,
+                    from_state=prev_state.value,
+                    to_state=new_state.value,
+                    event="SttPartial",
+                    epoch=self._fsm.epoch,
+                )
+        for eff in effects:
+            if isinstance(eff, SetGain):
+                self._mixer.set_gain(eff.gain, eff.ramp_ms)
+        if effects:
+            self._supervisor.execute_effects(effects)
+        if new_state == FsmState.DUCKED:
+            self._reclassify_overlap(now_ns, is_final=is_final)
+
+    def _reclassify_overlap(
+        self, now_ns: int, is_final: bool = False, *, force_cap: bool = False
+    ) -> None:
         """Evaluate overlap classifier on current acoustic and lexical features."""
         if self._fsm.state != FsmState.DUCKED:
             return
 
-        overlap_ms = max(0, int((now_ns - self._overlap_onset_ns) // 1_000_000))
+        raw_overlap_ms = max(0, int((now_ns - self._overlap_onset_ns) // 1_000_000))
+        overlap_ms = (
+            max(raw_overlap_ms, self._tuning.classify_cap_ms) if force_cap else raw_overlap_ms
+        )
         partial_age_ms = (
             max(0, int((now_ns - self._current_partial_ts_ns) // 1_000_000))
             if self._current_partial_ts_ns > 0
@@ -488,7 +556,7 @@ class OverlapEngine:
 
         rel_loudness = (
             self._loudness_tracker.rel_loudness_db(self._last_user_frame_pcm)
-            if self._last_user_frame_pcm
+            if self._last_user_frame_pcm and self._loudness_tracker._has_agent_audio
             else 0.0
         )
 
@@ -580,7 +648,10 @@ class OverlapEngine:
 
         if isinstance(event, TimerFired):
             if event.name == "classify_cap" and self._fsm.state == FsmState.DUCKED:
-                # Watchdog cap fired: FSM forces fail-safe policy
+                self._reclassify_overlap(now_ns, force_cap=True)
+                if cast(FsmState, self._fsm.state) != FsmState.DUCKED:
+                    return
+                # Watchdog cap fired and classifier still returned PENDING: force fail-safe
                 if self._telemetry is not None:
                     overlap_ms = max(0, int((now_ns - self._overlap_onset_ns) // 1_000_000))
                     self._telemetry.emit(
@@ -649,12 +720,19 @@ class OverlapEngine:
 
         # If FSM is THINKING, the arrival of the first audio chunk triggers FirstAudioReady
         if self._fsm.state == FsmState.THINKING:
+            self._tts_finished = False
             now_ns = self._clock.now_ns()
             ready_ev = FirstAudioReady()
             effects = self._fsm.transition(ready_ev, now_ns=now_ns)
             if effects:
                 self._supervisor.execute_effects(effects)
             self._on_fsm_state_changed(now_ns)
+
+        # Track non-empty TTS RMS as echo/loudness reference and record final chunk
+        if len(chunk.pcm) > 0:
+            self._loudness_tracker.update_agent(chunk.pcm)
+        if chunk.is_last:
+            self._tts_finished = True
 
         # Enqueue chunk into playout mixer
         self._mixer.enqueue_chunk(chunk)

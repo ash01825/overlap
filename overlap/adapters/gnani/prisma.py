@@ -373,9 +373,23 @@ class PrismaSttStream(SttStream):
                 continue
 
             elif msg_type == "speech_start":
+                if self._telemetry is not None:
+                    ts_ns = (
+                        self._clock.now_ns()
+                        if self._clock is not None
+                        else self._last_emitted_ts_ns
+                    )
+                    self._telemetry.emit("prisma.speech_start", ts_ns)
                 continue
 
             elif msg_type == "speech_end":
+                if self._telemetry is not None:
+                    ts_ns = (
+                        self._clock.now_ns()
+                        if self._clock is not None
+                        else self._last_emitted_ts_ns
+                    )
+                    self._telemetry.emit("prisma.speech_end", ts_ns)
                 continue
 
             elif msg_type == "partial_transcript":

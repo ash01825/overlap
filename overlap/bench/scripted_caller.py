@@ -20,8 +20,19 @@ from typing import Any
 import yaml  # type: ignore[import-untyped]
 
 from overlap.config import AppConfig
+from overlap.core.classifier import classify
 from overlap.core.clock import CancelToken
-from overlap.core.types import AudioFrame, Label, SttEvent, Tag, Tuning, WordTiming
+from overlap.core.predictor import BackchannelPredictor
+from overlap.core.types import (
+    AudioFrame,
+    FsmState,
+    Label,
+    OverlapFeatures,
+    SttEvent,
+    Tag,
+    Tuning,
+    WordTiming,
+)
 from overlap.integrations.pipecat_processor import (
     EndFrame,
     FrameDirection,
@@ -709,27 +720,69 @@ async def run_scenario_on_arm(
             reply_windows.append((r_start, r_end, ev.agent_reply))
         elif ev.kind == "user_long_turn":
             cursor = ev.at_ms
-            for cl_idx, cl in enumerate(ev.clauses):
-                cursor += cl.duration_ms
-                if cl.pause_after_ms >= active_tuning.bc_pause_min_ms and cl_idx == 0:
-                    if arm_norm == "overlap":
+            if arm_norm == "overlap":
+                predictor = BackchannelPredictor(
+                    tuning=active_tuning, default_lang=scenario.lang or "en-IN"
+                )
+                predictor.set_fsm_state(FsmState.LISTENING)
+                frame_ms = timeline.frame_ms
+                for cl in ev.clauses:
+                    t = cursor
+                    while t < cursor + cl.duration_ms:
+                        predictor.update(
+                            now_ns=t * 1_000_000,
+                            vad_state=True,
+                            energy_ema=-18.0,
+                            fsm_state=FsmState.LISTENING,
+                        )
+                        t += frame_ms
+                    cursor += cl.duration_ms
+                    predictor.update(
+                        now_ns=cursor * 1_000_000,
+                        vad_state=True,
+                        partial=SttEvent(
+                            kind="partial",
+                            text=cl.text,
+                            lang=scenario.lang or "en-IN",
+                            conf=0.92,
+                            ts_ns=cursor * 1_000_000,
+                        ),
+                        energy_ema=-18.0,
+                        fsm_state=FsmState.LISTENING,
+                    )
+                    if cl.pause_after_ms > 0:
                         pause_ns = cursor * 1_000_000
-                        fire_ns = (cursor + active_tuning.bc_pause_min_ms) * 1_000_000
-                        clip_ns = fire_ns + 25_000_000
                         tee_sink.emit("vad.offset", pause_ns)
-                        tee_sink.emit(
-                            "bc.agent.fire",
-                            fire_ns,
-                            pause_start_ns=pause_ns,
-                            turn_duration_ms=4500.0,
-                        )
-                        tee_sink.emit(
-                            "bc.agent.clip_start",
-                            clip_ns,
-                            pause_start_ns=pause_ns,
-                        )
-                        agent_bc_count += 1
-                cursor += cl.pause_after_ms
+                        p = 0
+                        while p < cl.pause_after_ms:
+                            step_ns = (cursor + p) * 1_000_000
+                            bc_due = predictor.update(
+                                now_ns=step_ns,
+                                vad_state=False,
+                                energy_ema=-22.0 - (p // frame_ms) * 2.5,
+                                fsm_state=FsmState.LISTENING,
+                            )
+                            if bc_due is not None:
+                                clip_ns = step_ns + 25_000_000
+                                tee_sink.emit(
+                                    "bc.agent.fire",
+                                    step_ns,
+                                    pause_start_ns=pause_ns,
+                                    turn_duration_ms=float(cursor - ev.at_ms),
+                                )
+                                tee_sink.emit(
+                                    "bc.agent.clip_start",
+                                    clip_ns,
+                                    pause_start_ns=pause_ns,
+                                )
+                                agent_bc_count += 1
+                                predictor.notify_clip_started()
+                                predictor.notify_clip_done()
+                            p += frame_ms
+                    cursor += cl.pause_after_ms
+            else:
+                for cl in ev.clauses:
+                    cursor += cl.duration_ms + cl.pause_after_ms
             if ev.agent_reply_duration_ms > 0:
                 reply_windows.append(
                     (cursor + 100, cursor + 100 + ev.agent_reply_duration_ms, ev.agent_reply)
@@ -795,7 +848,7 @@ async def run_scenario_on_arm(
                             (f_start, f_start + ev.followup_reply_duration_ms, ev.followup_reply)
                         )
             else:
-                # OVERLAP: Ducks within 20 ms, then classifies via lexical/duration rules
+                # OVERLAP: Ducks within 20 ms, then classifies via overlap classifier
                 duck_ns = onset_ns + (timeline.frame_ms * 1_000_000)
                 tee_sink.emit(
                     "duck.applied",
@@ -804,9 +857,51 @@ async def run_scenario_on_arm(
                     gain=active_tuning.duck_gain,
                     is_echo=False,
                 )
-                if gt == "BACKCHANNEL":
-                    verdict_ms = min(ev.duration_ms + 40, active_tuning.classify_cap_ms - 20)
-                    verdict_ns = onset_ns + (verdict_ms * 1_000_000)
+                lang_code = scenario.lang or "en-IN"
+                rel_loud = float(getattr(ev, "rel_loudness_db", 0.0) or 0.0)
+                eval_overlap_ms = min(
+                    max(ev.duration_ms, active_tuning.classify_min_ms),
+                    active_tuning.classify_cap_ms,
+                )
+                verdict = classify(
+                    OverlapFeatures(
+                        overlap_ms=eval_overlap_ms,
+                        user_speaking=ev.duration_ms > active_tuning.classify_min_ms,
+                        rel_loudness_db=rel_loud,
+                        partial_text=ev.text,
+                        partial_age_ms=40,
+                        stt_conf=0.92,
+                        lang=lang_code,
+                        is_final=ev.duration_ms <= active_tuning.classify_min_ms,
+                    ),
+                    active_tuning,
+                    decided_at_ns=onset_ns + (eval_overlap_ms * 1_000_000),
+                )
+                if verdict.label == Label.PENDING:
+                    cap_overlap_ms = min(ev.duration_ms, active_tuning.classify_cap_ms)
+                    still_speaking = ev.duration_ms > active_tuning.classify_cap_ms
+                    verdict = classify(
+                        OverlapFeatures(
+                            overlap_ms=cap_overlap_ms,
+                            user_speaking=still_speaking,
+                            rel_loudness_db=rel_loud,
+                            partial_text=ev.text,
+                            partial_age_ms=40,
+                            stt_conf=0.92,
+                            lang=lang_code,
+                            is_final=not still_speaking,
+                        ),
+                        active_tuning,
+                        decided_at_ns=onset_ns + (cap_overlap_ms * 1_000_000),
+                    )
+                verdict_ms = min(
+                    max(verdict.overlap_ms, timeline.frame_ms),
+                    active_tuning.classify_cap_ms,
+                )
+                verdict_ns = onset_ns + (verdict_ms * 1_000_000)
+                if verdict.label == Label.BACKCHANNEL:
+                    if gt == "INTERRUPT":
+                        missed_interruption_count += 1
                     tee_sink.emit(
                         "verdict",
                         verdict_ns,
@@ -817,8 +912,8 @@ async def run_scenario_on_arm(
                     duck_intervals_ms.append((ev.at_ms, ev.at_ms + verdict_ms))
                     silence_gaps_ms.append(180.0)
                 else:
-                    verdict_ms = 260
-                    verdict_ns = onset_ns + (verdict_ms * 1_000_000)
+                    if gt == "BACKCHANNEL":
+                        false_interruption_count += 1
                     stop_ns = verdict_ns + 20_000_000
                     interruption_count += 1
                     tee_sink.emit(

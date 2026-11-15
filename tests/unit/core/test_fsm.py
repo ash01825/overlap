@@ -584,3 +584,37 @@ def test_fsm_stateful_wrapper_lifecycle() -> None:
     st5: FsmState = fsm.state
     assert st5 == FsmState.LISTENING
     assert fsm.epoch == 1
+
+
+def test_speaking_late_escalation_ignores_pure_backchannel_partial() -> None:
+    """In SPEAKING within recheck_window_ms, pure backchannel partials stay in SPEAKING."""
+    ctx = FsmContext(
+        state=FsmState.SPEAKING,
+        last_backchannel_ns=1_000_000_000,
+        user_vad_active=True,
+    )
+    ev = SttPartial(text="yeah okay", lang="en-IN", conf=0.95, ts_ns=1_200_000_000)
+
+    next_ctx, effects = transition_context(ctx, ev, now_ns=1_200_000_000)
+
+    assert next_ctx.state == FsmState.SPEAKING
+    assert len(effects) == 1
+    assert isinstance(effects[0], TelemetryEffect)
+    assert effects[0].name == "fsm.ignored"
+    assert ("reason", "no_escalation_signal") in effects[0].payload
+
+
+def test_speaking_late_escalation_allows_stop_word_after_vad_offset() -> None:
+    """Stop/contrast/question partials still escalate SPEAKING -> DUCKED after VadOffset."""
+    ctx = FsmContext(
+        state=FsmState.SPEAKING,
+        last_backchannel_ns=1_000_000_000,
+        user_vad_active=False,
+    )
+    ev = SttPartial(text="wait stop", lang="en-IN", conf=0.95, ts_ns=1_200_000_000)
+
+    next_ctx, effects = transition_context(ctx, ev, now_ns=1_200_000_000)
+
+    assert next_ctx.state == FsmState.DUCKED
+    assert next_ctx.reescalation_count == 1
+    assert any(isinstance(eff, SetGain) for eff in effects)

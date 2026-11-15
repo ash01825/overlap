@@ -21,6 +21,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from typing import Any, overload
 
+from overlap.core.lexicon import analyze
 from overlap.core.types import (
     AbortLlm,
     AgentAudioDrained,
@@ -314,10 +315,21 @@ def transition_context(
                     (TelemetryEffect(name="fsm.ignored", payload=(("reason", "empty_partial"),)),),
                 )
 
+            last_bc = ctx.last_backchannel_ns
+            if last_bc is None:
+                return (
+                    ctx,
+                    (
+                        TelemetryEffect(
+                            name="fsm.ignored",
+                            payload=(("reason", "no_prior_backchannel"),),
+                        ),
+                    ),
+                )
+
             # Guarded by recheck_window_ms
             recheck_window_ns = cfg.recheck_window_ms * 1_000_000
-            last_bc = ctx.last_backchannel_ns
-            if last_bc is not None and (now_ns - last_bc) > recheck_window_ns:
+            if (now_ns - last_bc) > recheck_window_ns:
                 return (
                     ctx,
                     (
@@ -336,6 +348,31 @@ def transition_context(
                         TelemetryEffect(
                             name="fsm.ignored",
                             payload=(("reason", "max_reescalations_reached"),),
+                        ),
+                    ),
+                )
+
+            analysis = analyze(text, lang_hint=event.lang)
+            has_escalation_signal = (
+                analysis.stop_hit
+                or analysis.contrast_hit
+                or analysis.question
+                or len(analysis.content_tokens) > 0
+                or len(analysis.tokens) > cfg.bc_max_tokens
+            )
+            can_escalate = has_escalation_signal and (
+                ctx.user_vad_active
+                or analysis.stop_hit
+                or analysis.contrast_hit
+                or analysis.question
+            )
+            if not can_escalate:
+                return (
+                    ctx,
+                    (
+                        TelemetryEffect(
+                            name="fsm.ignored",
+                            payload=(("reason", "no_escalation_signal"),),
                         ),
                     ),
                 )

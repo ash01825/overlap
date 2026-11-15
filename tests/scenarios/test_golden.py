@@ -252,6 +252,7 @@ def test_scenario_01_haan_haan_backchannel_keeps_streams_alive() -> None:
         clock.advance(20)
 
     engine.handle_frame(AudioFrame(pcm=b"\x00" * 640, sample_rate=16000, ts_ns=clock.now_ns()))
+    assert cast(FsmState, engine.state) == FsmState.LISTENING
     engine.supervisor.assert_quiescent()  # INV-S1
 
     SCENARIO_RESULTS.append(
@@ -563,6 +564,7 @@ def test_scenario_05_side_talk_ignored() -> None:
         clock.advance(20)
 
     engine.handle_frame(AudioFrame(pcm=b"\x00" * 640, sample_rate=16000, ts_ns=clock.now_ns()))
+    assert cast(FsmState, engine.state) == FsmState.LISTENING
     engine.supervisor.assert_quiescent()
 
     SCENARIO_RESULTS.append(
@@ -619,6 +621,7 @@ def test_scenario_06_echo_of_own_backchannel_clip_ignored() -> None:
         clock.advance(20)
 
     engine.handle_frame(AudioFrame(pcm=b"\x00" * 640, sample_rate=16000, ts_ns=clock.now_ns()))
+    assert cast(FsmState, engine.state) == FsmState.LISTENING
     engine.supervisor.assert_quiescent()
 
     SCENARIO_RESULTS.append(
@@ -1042,3 +1045,162 @@ def test_engine_fast_path_synchronous_no_await() -> None:
         assert not awaits, (
             f"Fast-path method {method_name} contains forbidden await/async constructs: {awaits}"
         )
+
+
+def test_multiple_overlaps_in_same_turn_no_stale_partial_leak() -> None:
+    """A second overlap in the same turn must not inherit the first overlap's partial."""
+    engine, fakes = _create_engine_with_fakes()
+    clock: VirtualClock = fakes["clock"]
+    transport: FakeTransport = fakes["transport"]
+    vad: FakeVad = fakes["vad"]
+    mixer: PlayoutMixer = fakes["mixer"]
+
+    _start_agent_speaking(engine, clock, mixer, pcm=_generate_tone_pcm(320 * 120, amplitude=8000.0))
+    clock.advance(40)
+
+    # First overlap: short "haan" backchannel -> returns to SPEAKING
+    vad.set_speech(True, confidence=0.95)
+    for _ in range(10):
+        clock.advance(20)
+        engine.handle_frame(
+            AudioFrame(
+                pcm=_generate_tone_pcm(320, amplitude=4000.0),
+                sample_rate=16000,
+                ts_ns=clock.now_ns(),
+            )
+        )
+    assert engine.state == FsmState.DUCKED
+
+    vad.set_speech(False)
+    engine.handle_frame(AudioFrame(pcm=b"\x00" * 640, sample_rate=16000, ts_ns=clock.now_ns()))
+    engine.handle_stt_event(
+        SttEvent(kind="partial", text="haan", lang="hi", conf=0.95, ts_ns=clock.now_ns())
+    )
+    assert engine.last_verdict is not None
+    assert engine.last_verdict.label == Label.BACKCHANNEL
+    assert cast(FsmState, engine.state) == FsmState.SPEAKING
+    assert transport.flushes == 0
+
+    # Brief gap before second overlap in the exact same turn
+    for _ in range(5):
+        clock.advance(20)
+        engine.handle_frame(AudioFrame(pcm=b"\x00" * 640, sample_rate=16000, ts_ns=clock.now_ns()))
+
+    # Second overlap: 400 ms continuous user speech with NO STT partial
+    vad.set_speech(True, confidence=0.95)
+    engine.handle_frame(
+        AudioFrame(
+            pcm=_generate_tone_pcm(320, amplitude=9000.0),
+            sample_rate=16000,
+            ts_ns=clock.now_ns(),
+        )
+    )
+    assert cast(FsmState, engine.state) == FsmState.DUCKED
+    assert engine._current_partial_text is None
+
+    for _ in range(21):
+        clock.advance(20)
+        engine.handle_frame(
+            AudioFrame(
+                pcm=_generate_tone_pcm(320, amplitude=9000.0),
+                sample_rate=16000,
+                ts_ns=clock.now_ns(),
+            )
+        )
+
+    assert engine.last_verdict is not None
+    assert cast(Label, engine.last_verdict.label) == Label.INTERRUPT
+    assert cast(FsmState, engine.state) in (FsmState.YIELDED, FsmState.LISTENING)
+    assert transport.flushes >= 1
+
+
+def test_prisma_delayed_partial_after_400ms_cap_backchannel_and_stop_word() -> None:
+    """Delayed STT partials after 400 ms classify_cap handle backchannels and stop words."""
+    # Part A: 180 ms overlap -> 400 ms cap -> BACKCHANNEL; delayed "yeah" stays SPEAKING
+    engine1, fakes1 = _create_engine_with_fakes()
+    clock1: VirtualClock = fakes1["clock"]
+    transport1: FakeTransport = fakes1["transport"]
+    vad1: FakeVad = fakes1["vad"]
+    mixer1: PlayoutMixer = fakes1["mixer"]
+
+    _start_agent_speaking(
+        engine1, clock1, mixer1, pcm=_generate_tone_pcm(320 * 100, amplitude=8000.0)
+    )
+    clock1.advance(40)
+
+    vad1.set_speech(True, confidence=0.95)
+    for _ in range(9):
+        engine1.handle_frame(
+            AudioFrame(
+                pcm=_generate_tone_pcm(320, amplitude=4000.0),
+                sample_rate=16000,
+                ts_ns=clock1.now_ns(),
+            )
+        )
+        clock1.advance(20)
+    assert engine1.state == FsmState.DUCKED
+
+    vad1.set_speech(False)
+    engine1.handle_frame(AudioFrame(pcm=b"\x00" * 640, sample_rate=16000, ts_ns=clock1.now_ns()))
+    assert engine1.state == FsmState.DUCKED  # 180 ms < classify_min_ms (250) -> still PENDING
+
+    for _ in range(12):
+        clock1.advance(20)
+
+    assert engine1.last_verdict is not None
+    assert engine1.last_verdict.label == Label.BACKCHANNEL
+    assert cast(FsmState, engine1.state) == FsmState.SPEAKING
+    assert transport1.flushes == 0
+
+    # Delayed pure backchannel partial at ~460 ms must NOT re-escalate
+    clock1.advance(40)
+    engine1.handle_stt_event(
+        SttEvent(kind="partial", text="yeah", lang="en-IN", conf=0.95, ts_ns=clock1.now_ns())
+    )
+    assert cast(FsmState, engine1.state) == FsmState.SPEAKING
+    assert transport1.flushes == 0
+
+    # Part B: 180 ms overlap + cap -> SPEAKING; delayed "stop please" escalates and yields
+    engine2, fakes2 = _create_engine_with_fakes()
+    clock2: VirtualClock = fakes2["clock"]
+    transport2: FakeTransport = fakes2["transport"]
+    vad2: FakeVad = fakes2["vad"]
+    mixer2: PlayoutMixer = fakes2["mixer"]
+
+    _start_agent_speaking(
+        engine2, clock2, mixer2, pcm=_generate_tone_pcm(320 * 100, amplitude=8000.0)
+    )
+    clock2.advance(40)
+
+    vad2.set_speech(True, confidence=0.95)
+    for _ in range(9):
+        engine2.handle_frame(
+            AudioFrame(
+                pcm=_generate_tone_pcm(320, amplitude=4000.0),
+                sample_rate=16000,
+                ts_ns=clock2.now_ns(),
+            )
+        )
+        clock2.advance(20)
+    vad2.set_speech(False)
+    engine2.handle_frame(AudioFrame(pcm=b"\x00" * 640, sample_rate=16000, ts_ns=clock2.now_ns()))
+
+    for _ in range(12):
+        clock2.advance(20)
+    assert engine2.state == FsmState.SPEAKING
+    assert transport2.flushes == 0
+
+    clock2.advance(40)
+    engine2.handle_stt_event(
+        SttEvent(
+            kind="partial",
+            text="stop please",
+            lang="en-IN",
+            conf=0.95,
+            ts_ns=clock2.now_ns(),
+        )
+    )
+    assert engine2.last_verdict is not None
+    assert engine2.last_verdict.label == Label.INTERRUPT
+    assert cast(FsmState, engine2.state) in (FsmState.YIELDED, FsmState.LISTENING)
+    assert transport2.flushes >= 1
