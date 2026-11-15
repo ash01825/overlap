@@ -22,7 +22,7 @@ from typing import Any, cast
 
 from overlap.core.audio import EchoGate, LoudnessTracker
 from overlap.core.classifier import classify
-from overlap.core.clock import Clock, MonotonicClock, VirtualClock
+from overlap.core.clock import CancelToken, Clock, MonotonicClock, VirtualClock
 from overlap.core.fsm import FSM
 from overlap.core.predictor import BackchannelPredictor
 from overlap.core.types import (
@@ -178,6 +178,7 @@ class OverlapEngine:
         self._active_agent_turn_task: asyncio.Task[Any] | None = None
 
         # STT audio buffer & background tasks
+        self._session_token: CancelToken = CancelToken()
         self._stt_stream: SttStream | None = None
         self._stt_frame_queue: deque[AudioFrame] = deque(maxlen=100)
         self._stt_frame_event: asyncio.Event = asyncio.Event()
@@ -766,27 +767,34 @@ class OverlapEngine:
     async def start(self) -> None:
         """Start background workers for STT, transport, and engine orchestration."""
         self._stopped = False
+        self._session_token = CancelToken()
         await self._clip_cache.prepare([self._lang])
 
-        # Open active STT stream session
-        cancel_token = self._supervisor.create_child_token("engine_stt")
-        self._stt_stream = await self._stt.open(lang_hint=self._lang, cancel=cancel_token)
-        self._supervisor.register_stt_stream(self._stt_stream, cancel=cancel_token)
+        # Open session-scoped STT stream (persists across turn transitions)
+        self._stt_stream = await self._stt.open(lang_hint=self._lang, cancel=self._session_token)
+        self._supervisor.register_stt_stream(self._stt_stream, cancel=self._session_token)
 
-        # Spawn background workers
+        # Spawn session-scoped background workers
         self._stt_send_task = self._supervisor.spawn_task(
-            self._stt_send_worker(), name="engine_stt_send"
+            self._stt_send_worker(),
+            name="engine_stt_send",
+            cancel=self._session_token,
         )
         self._stt_recv_task = self._supervisor.spawn_task(
-            self._stt_recv_worker(), name="engine_stt_recv"
+            self._stt_recv_worker(),
+            name="engine_stt_recv",
+            cancel=self._session_token,
         )
         self._transport_recv_task = self._supervisor.spawn_task(
-            self._transport_recv_worker(), name="engine_transport_recv"
+            self._transport_recv_worker(),
+            name="engine_transport_recv",
+            cancel=self._session_token,
         )
 
     async def stop(self) -> None:
         """Gracefully stop engine and drain active tasks and streams."""
         self._stopped = True
+        self._session_token.cancel()
         self._stt_frame_event.set()
 
         if self._drain_check_handle is not None:

@@ -30,6 +30,7 @@ ENV/
 env/
 
 # Test, lint, and type check caches
+.cache/
 .pytest_cache/
 .coverage
 htmlcov/

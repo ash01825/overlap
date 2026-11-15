@@ -11,8 +11,8 @@ Because OVERLAP keeps the microphone active while the agent is speaking (ducking
 1. **Recommended Hardware (Wired Closed-Back Headphones):**
    - Use wired closed-back headphones or a directional headset mic so speaker bleed into the microphone is physically eliminated.
    - Verify macOS / Linux input gain is set to ~70% to avoid clipping on sudden barge-ins (`"rukiye"`, `"wait"`).
-2. **Browser / WebRTC Acoustic Echo Cancellation (LiveKit Transport):**
-   - When connecting via WebRTC / LiveKit, ensure `echoCancellation: true`, `noiseSuppression: true`, and `autoGainControl: true` are enabled on the client audio track.
+2. **Browser Mic Capture (`overlap/demo` & WebRTC):**
+   - In the live browser workbench, `echoCancellation: true` and `noiseSuppression: true` stay enabled while `autoGainControl: false` avoids AGC gain pumping during background room silence.
    - OVERLAP's internal `EchoGate` also tags outbound TTS (`Tag.SELF_TTS`) and backchannel clips (`Tag.SELF_BACKCHANNEL`) with a configurable `echo_hold_ms` holdover window (`Tuning.echo_hold_ms = 60 ms`).
 3. **Downstream Playout Calibration (`assumed_downstream_ms`):**
    - Default `Tuning.assumed_downstream_ms` is `80 ms`. If running over a high-buffer Bluetooth output device (not recommended for live demos), see `docs/CALIBRATION.md` to adjust `OVERLAP_ASSUMED_DOWNSTREAM_MS`.
@@ -24,9 +24,11 @@ Because OVERLAP keeps the microphone active while the agent is speaking (ducking
 All credentials and runtime parameters are read exclusively from environment variables (never hardcoded or committed):
 
 ```bash
-# Optional for offline/hermetic demo; required only for live Gnani Vachana WS sessions
+# Optional for offline/local fallback; required for live Gnani Prisma / Timbre sessions
 export GNANI_API_KEY="your-gnani-api-key"
-export OVERLAP_VOICE_ID="gnani-timbre-hi-female-1"
+# Optional Gemini key for Evon/Gemini fallback
+export GEMINI_API_KEY="your-gemini-api-key"
+export OVERLAP_VOICE_ID="Nalini"
 export OVERLAP_LANG="hi-IN"
 export OVERLAP_DUCK_GAIN="0.3"
 export OVERLAP_CLASSIFY_CAP_MS="400"
@@ -34,21 +36,21 @@ export OVERLAP_CLASSIFY_CAP_MS="400"
 
 ---
 
-## 3. Running the Demo (`make demo` or Docker)
+## 3. Running the Demo (`make demo`, `make demo-ab`, or Docker)
 
 ### Local Conda Environment (`gnani`)
 ```bash
 conda activate gnani
-make demo
+make demo       # live full-duplex web workbench at http://127.0.0.1:8765 (falls back cleanly if keyless)
+make demo-ab    # deterministic offline A/B dry-run across 8 scripted caller scenarios
 ```
-`make demo` runs in deterministic offline A/B dry-run mode by default (requiring zero external secrets or network access) and prints the blinded A/B assignment table plus the stimulus-identity verification across all 8 scripted caller scenarios.
 
 ### Docker Container
 ```bash
 docker build -t overlap-agent:latest .
-docker run --rm \
+docker run --rm -p 8765:8765 \
   -e OVERLAP_LANG="hi-IN" \
-  -e OVERLAP_VOICE_ID="gnani-timbre-hi-female-1" \
+  -e OVERLAP_VOICE_ID="Nalini" \
   overlap-agent:latest
 ```
 
@@ -58,7 +60,7 @@ docker run --rm \
 
 If live Wi-Fi, LiveKit room connectivity, or `api.vachana.ai` credentials experience issues during a presentation:
 
-1. **Instant Hermetic A/B Replay (`make demo`):**
+1. **Instant Hermetic A/B Replay (`make demo-ab`):**
    - Run `python -m overlap.bench.ab --output-dir reports/ab --seed 42` to deterministically synthesize all 8 caller scenarios (`bench/ab_scenarios/*.yaml`) across both **Stock Pipecat** (stop-on-any-VAD) and **OVERLAP** (duck-then-decide).
    - Play the generated WAV files in `reports/ab/clips/pair_01_arm_A.wav` vs `pair_01_arm_B.wav` directly for judges.
 2. **Pre-computed Telemetry & Statistical Summary (`reports/ab/summary.md`):**

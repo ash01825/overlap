@@ -5,7 +5,7 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     OVERLAP_LANG="hi-IN" \
-    OVERLAP_VOICE_ID="gnani-timbre-hi-female-1"
+    OVERLAP_VOICE_ID="Nalini"
 
 COPY pyproject.toml README.md ARCHITECTURE.md CLAUDE.md TASKS.md Makefile ./
 COPY overlap ./overlap
@@ -17,4 +17,6 @@ COPY tests ./tests
 
 RUN pip install --no-cache-dir -e .
 
-CMD ["python", "-m", "overlap.bench.ab", "--dry-run"]
+EXPOSE 8765
+
+CMD ["python", "-m", "overlap.demo", "--host", "0.0.0.0", "--no-browser"]

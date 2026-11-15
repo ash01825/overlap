@@ -1,0 +1,1899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OVERLAP — Full-Duplex Voice Runtime</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --dutch-white: #F7E5C1;
+      --ecru: #B8A85D;
+      --gunmetal: #1C393F;
+
+      --bg: #FCF6EA;
+      --surface: rgba(253, 249, 240, 0.90);
+      --surface-solid: #FFFDF7;
+      --well: rgba(247, 229, 193, 0.45);
+      --hover: rgba(184, 168, 93, 0.16);
+      --border: rgba(28, 57, 63, 0.15);
+      --border-strong: rgba(28, 57, 63, 0.34);
+
+      --ink: #1C393F;
+      --ink-soft: #264A52;
+      --ink-border: rgba(184, 168, 93, 0.42);
+      --text: #1C393F;
+      --text-secondary: #3B575C;
+      --text-muted: #657874;
+
+      --accent: #1C393F;
+      --accent-soft: #B8A85D;
+      --accent-cyan: #2E5A62;
+      --accent-grad: linear-gradient(135deg, #B8A85D 0%, #D2C175 100%);
+
+      --forest: #7B6C28;
+      --forest-dim: rgba(184, 168, 93, 0.18);
+      --forest-border: rgba(184, 168, 93, 0.52);
+
+      --amber: #A1581F;
+      --amber-dim: rgba(161, 88, 31, 0.12);
+      --amber-border: rgba(161, 88, 31, 0.38);
+
+      --emerald: #2B5E54;
+      --emerald-dim: rgba(43, 94, 84, 0.11);
+      --emerald-border: rgba(43, 94, 84, 0.36);
+
+      --coral: #B85038;
+      --coral-dim: rgba(184, 80, 56, 0.10);
+      --coral-border: rgba(184, 80, 56, 0.36);
+
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font-serif: 'Instrument Serif', Georgia, serif;
+      --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, Menlo, Monaco, Consolas, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background-color: var(--bg);
+      background-image:
+        linear-gradient(120deg, rgba(247, 229, 193, 0.55) 0%, rgba(252, 246, 234, 0.20) 52%, rgba(184, 168, 93, 0.14) 100%);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 13px;
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-rows: 56px 1fr;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    /* Architectural Gunmetal & Ecru Masthead */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 22px;
+      background: linear-gradient(90deg, #1C393F 0%, #22444B 58%, #1C393F 100%);
+      border-bottom: 1px solid var(--ink-border);
+      box-shadow: 0 2px 12px rgba(28, 57, 63, 0.12);
+      gap: 16px;
+      user-select: none;
+      color: #F7E5C1;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 240px;
+    }
+
+    .brand-mark {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      background: #B8A85D;
+      border: 1px solid rgba(247, 229, 193, 0.55);
+      flex-shrink: 0;
+    }
+
+    .brand-name {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      font-size: 12.5px;
+      letter-spacing: 0.14em;
+      color: #F7E5C1;
+    }
+
+    .brand-sub {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: 16px;
+      color: #B8A85D;
+      line-height: 1;
+    }
+
+    .conn-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 9px;
+      border: 1px solid rgba(247, 229, 193, 0.24);
+      background: rgba(18, 39, 43, 0.72);
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      color: #F7E5C1;
+      text-transform: uppercase;
+    }
+
+    .conn-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #7A8E89;
+    }
+
+    .conn-dot.online {
+      background: #B8A85D;
+      box-shadow: 0 0 8px rgba(184, 168, 93, 0.75);
+    }
+
+    .conn-dot.offline {
+      background: #DF7B63;
+    }
+
+    /* Mode Segmented Switch */
+    .mode-switch {
+      display: inline-flex;
+      background: rgba(16, 35, 39, 0.75);
+      border: 1px solid rgba(247, 229, 193, 0.24);
+      border-radius: 6px;
+      padding: 3px;
+      gap: 3px;
+    }
+
+    .mode-btn {
+      appearance: none;
+      border: none;
+      background: transparent;
+      color: rgba(247, 229, 193, 0.65);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      padding: 5px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      transition: all 140ms ease;
+    }
+
+    .mode-btn:hover {
+      color: #F7E5C1;
+    }
+
+    .mode-btn.active {
+      background: rgba(184, 168, 93, 0.24);
+      color: #F7E5C1;
+      box-shadow: inset 0 0 0 1px rgba(184, 168, 93, 0.62);
+    }
+
+    .mode-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(247, 229, 193, 0.45);
+    }
+
+    .mode-btn.active[data-mode="overlap"] .mode-dot {
+      background: #B8A85D;
+      box-shadow: 0 0 6px rgba(184, 168, 93, 0.75);
+    }
+
+    .mode-btn.active[data-mode="stock"] .mode-dot {
+      background: #DF7B63;
+      box-shadow: 0 0 6px rgba(223, 123, 99, 0.65);
+    }
+
+    /* Topbar Right Controls */
+    .controls {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      min-width: 340px;
+    }
+
+    .lang-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(18, 39, 43, 0.72);
+      border: 1px solid rgba(247, 229, 193, 0.24);
+      border-radius: 6px;
+      padding: 0 10px;
+      height: 32px;
+    }
+
+    .lang-tag {
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      letter-spacing: 0.07em;
+      color: #B8A85D;
+      text-transform: uppercase;
+    }
+
+    .lang-select {
+      appearance: none;
+      -webkit-appearance: none;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #F7E5C1;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      padding-right: 14px;
+      cursor: pointer;
+      background-image: linear-gradient(45deg, transparent 50%, #B8A85D 50%),
+        linear-gradient(135deg, #B8A85D 50%, transparent 50%);
+      background-position: calc(100% - 5px) 52%, calc(100% - 1px) 52%;
+      background-size: 4px 4px, 4px 4px;
+      background-repeat: no-repeat;
+    }
+
+    .lang-select option {
+      background: #1C393F;
+      color: #F7E5C1;
+    }
+
+    .btn-ghost {
+      appearance: none;
+      background: rgba(18, 39, 43, 0.62);
+      border: 1px solid rgba(247, 229, 193, 0.24);
+      color: #F7E5C1;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 140ms ease;
+    }
+
+    .btn-ghost:hover {
+      border-color: rgba(184, 168, 93, 0.68);
+      color: #FFFFFF;
+      background: rgba(34, 68, 75, 0.85);
+    }
+
+    .btn-mic {
+      appearance: none;
+      border: 1px solid rgba(247, 229, 193, 0.48);
+      background: linear-gradient(135deg, #B8A85D 0%, #CCBC70 100%);
+      color: #1C393F;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      padding: 6px 15px;
+      border-radius: 6px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.16);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      transition: all 140ms ease;
+    }
+
+    .btn-mic:hover {
+      filter: brightness(1.06);
+      transform: translateY(-0.5px);
+    }
+
+    .btn-mic.recording {
+      background: linear-gradient(135deg, #B85038 0%, #CA6048 100%);
+      color: #F7E5C1;
+      border-color: rgba(247, 229, 193, 0.55);
+      box-shadow: 0 2px 14px rgba(184, 80, 56, 0.38);
+    }
+
+    .mic-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .btn-mic.recording .mic-dot {
+      animation: pulse-dot 1.2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* Main Desktop Two-Column Workspace */
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 440px;
+      height: calc(100vh - 56px);
+      overflow: hidden;
+    }
+
+    /* Left Signal Pane */
+    .signal-pane {
+      display: grid;
+      grid-template-rows: 52px 1fr 42px;
+      background: transparent;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    /* FSM State Rail */
+    .state-rail {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 22px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(252, 246, 232, 0.92);
+      gap: 12px;
+      user-select: none;
+    }
+
+    .fsm-nodes {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .fsm-node {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      padding: 4px 10px;
+      border-radius: 4px;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      transition: all 100ms ease;
+    }
+
+    .fsm-sep {
+      color: rgba(28, 57, 63, 0.28);
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    .fsm-node.active[data-state="LISTENING"] {
+      color: #1C393F;
+      background: rgba(247, 229, 193, 0.65);
+      border-color: rgba(28, 57, 63, 0.30);
+      font-weight: 600;
+    }
+
+    .fsm-node.active[data-state="THINKING"] {
+      color: #6B5D20;
+      background: rgba(184, 168, 93, 0.22);
+      border-color: rgba(184, 168, 93, 0.52);
+      font-weight: 600;
+    }
+
+    .fsm-node.active[data-state="SPEAKING"] {
+      color: #F7E5C1;
+      background: #1C393F;
+      border-color: #1C393F;
+      font-weight: 600;
+    }
+
+    .fsm-node.active[data-state="DUCKED"] {
+      color: var(--amber);
+      background: var(--amber-dim);
+      border-color: var(--amber-border);
+      font-weight: 600;
+    }
+
+    .fsm-node.active[data-state="YIELDED"] {
+      color: var(--coral);
+      background: var(--coral-dim);
+      border-color: var(--coral-border);
+      font-weight: 600;
+    }
+
+    .fsm-node.active[data-state="BACKCHANNELING"] {
+      color: var(--emerald);
+      background: var(--emerald-dim);
+      border-color: var(--emerald-border);
+      font-weight: 600;
+    }
+
+    .rail-metrics {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .metric-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--surface-solid);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+
+    .metric-label {
+      color: var(--text-muted);
+      font-size: 10px;
+      letter-spacing: 0.05em;
+    }
+
+    .metric-val {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .metric-chip.ducked {
+      border-color: var(--amber-border);
+      background: var(--amber-dim);
+    }
+
+    .metric-chip.ducked .metric-val {
+      color: var(--amber);
+    }
+
+    .verdict-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--surface-solid);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .verdict-chip.backchannel {
+      color: var(--emerald);
+      border-color: var(--emerald-border);
+      background: var(--emerald-dim);
+      font-weight: 600;
+    }
+
+    .verdict-chip.interrupt {
+      color: var(--coral);
+      border-color: var(--coral-border);
+      background: var(--coral-dim);
+      font-weight: 600;
+    }
+
+    .verdict-chip.sidetalk {
+      color: var(--amber);
+      border-color: var(--amber-border);
+      background: var(--amber-dim);
+      font-weight: 600;
+    }
+
+    /* Dual-Lane Oscilloscope Stage */
+    .scope-stage {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      min-width: 0;
+      overflow: hidden;
+      background:
+        linear-gradient(150deg, rgba(247, 229, 193, 0.38) 0%, rgba(253, 249, 240, 0.85) 55%, rgba(184, 168, 93, 0.12) 100%);
+    }
+
+    canvas#scope-canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .lane-hud {
+      position: absolute;
+      left: 22px;
+      right: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+
+    .lane-hud.top {
+      top: 14px;
+    }
+
+    .lane-hud.bottom {
+      top: calc(44% + 14px);
+    }
+
+    .lane-title {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .lane-swatch {
+      width: 12px;
+      height: 3px;
+      border-radius: 1px;
+      display: inline-block;
+    }
+
+    .lane-swatch.user {
+      background: linear-gradient(90deg, #1C393F, #35626B);
+    }
+
+    .lane-swatch.agent {
+      background: linear-gradient(90deg, #8C7D3A, #B8A85D);
+    }
+
+    .lane-tag {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 500;
+      padding: 2px 9px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: rgba(255, 253, 247, 0.94);
+      color: var(--text-muted);
+    }
+
+    .lane-tag.vad-hot {
+      color: #1C393F;
+      border-color: rgba(28, 57, 63, 0.36);
+      background: #F7E5C1;
+      font-weight: 600;
+    }
+
+    .lane-tag.ducked {
+      color: var(--amber);
+      border-color: var(--amber-border);
+      background: #FDF1E2;
+      font-weight: 600;
+    }
+
+    .lane-tag.speaking {
+      color: #1C393F;
+      border-color: rgba(184, 168, 93, 0.58);
+      background: rgba(247, 229, 193, 0.85);
+      font-weight: 600;
+    }
+
+    /* Bottom Status Strip */
+    .status-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 22px;
+      border-top: 1px solid var(--border);
+      background: rgba(247, 229, 193, 0.32);
+      gap: 16px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    .partial-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .partial-key {
+      color: var(--text-muted);
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      flex-shrink: 0;
+    }
+
+    .partial-val {
+      color: var(--text);
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .partial-val.muted {
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .strip-meta {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+      color: var(--text-muted);
+      font-size: 10px;
+      letter-spacing: 0.05em;
+    }
+
+    .strip-meta strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    /* Right Pane: Conversation + Engine Ledger */
+    .side-pane {
+      display: flex;
+      flex-direction: column;
+      border-left: 1px solid rgba(28, 57, 63, 0.18);
+      background: rgba(253, 249, 240, 0.92);
+      box-shadow: -6px 0 24px rgba(28, 57, 63, 0.04);
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .chat-section {
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 65%;
+      min-height: 0;
+    }
+
+    .pane-header {
+      height: 36px;
+      padding: 0 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      flex-shrink: 0;
+      user-select: none;
+      background: rgba(247, 229, 193, 0.36);
+    }
+
+    .chat-feed {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .chat-feed::-webkit-scrollbar,
+    .telemetry-feed::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    .chat-feed::-webkit-scrollbar-thumb,
+    .telemetry-feed::-webkit-scrollbar-thumb {
+      background: rgba(184, 168, 93, 0.55);
+      border-radius: 2px;
+    }
+
+    .empty-hint {
+      color: var(--text-secondary);
+      font-size: 12.5px;
+      margin: auto 0;
+      text-align: left;
+      padding: 18px 20px;
+      background: linear-gradient(145deg, rgba(247, 229, 193, 0.45), rgba(255, 253, 247, 0.96));
+      border: 1px solid rgba(184, 168, 93, 0.45);
+      border-left: 3px solid #1C393F;
+      border-radius: 6px;
+      line-height: 1.55;
+    }
+
+    .empty-hint-title {
+      font-family: var(--font-serif);
+      font-size: 21px;
+      color: #1C393F;
+      margin-bottom: 6px;
+      font-weight: 400;
+    }
+
+    .turn-row {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      padding: 10px 13px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface-solid);
+    }
+
+    .turn-row.user {
+      background: linear-gradient(135deg, rgba(247, 229, 193, 0.46), rgba(255, 253, 247, 0.96));
+      border-color: rgba(184, 168, 93, 0.36);
+    }
+
+    .turn-row.agent {
+      border-left: 3px solid #B8A85D;
+    }
+
+    .turn-row.agent.interrupted {
+      border-left: 3px solid var(--coral);
+    }
+
+    .turn-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+    }
+
+    .turn-role {
+      font-weight: 600;
+    }
+
+    .turn-row.user .turn-role {
+      color: #1C393F;
+    }
+
+    .turn-row.agent .turn-role {
+      color: #7D6E2E;
+    }
+
+    .turn-row.agent.interrupted .turn-role {
+      color: var(--coral);
+    }
+
+    .turn-tag {
+      font-size: 9px;
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: 3px;
+      border: 1px solid var(--coral-border);
+      color: var(--coral);
+      background: var(--coral-dim);
+    }
+
+    .turn-text {
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.55;
+      word-break: break-word;
+    }
+
+    .turn-discarded {
+      color: var(--coral);
+      text-decoration: line-through;
+      opacity: 0.72;
+    }
+
+    .bc-pill {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 6px 11px;
+      border-radius: 5px;
+      border: 1px solid var(--emerald-border);
+      background: var(--emerald-dim);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--emerald);
+    }
+
+    .bc-pill-action {
+      font-size: 10px;
+      opacity: 0.85;
+    }
+
+    .chat-input-bar {
+      border-top: 1px solid var(--border);
+      background: rgba(247, 229, 193, 0.30);
+      flex-shrink: 0;
+    }
+
+    .lang-cue-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 14px 0 14px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .lang-cue-strip strong {
+      color: #1C393F;
+      font-weight: 600;
+    }
+
+    .chat-input-wrap {
+      display: flex;
+      align-items: center;
+      padding: 8px 14px 10px 14px;
+      gap: 8px;
+    }
+
+    .chat-input {
+      flex: 1;
+      background: var(--surface-solid);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 7px 11px;
+      outline: none;
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 13px;
+      transition: all 140ms ease;
+    }
+
+    .chat-input:focus {
+      border-color: #B8A85D;
+      box-shadow: 0 0 0 3px rgba(184, 168, 93, 0.22);
+    }
+
+    .chat-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .enter-hint {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      background: var(--surface-solid);
+      border-radius: 4px;
+      padding: 5px 8px;
+      user-select: none;
+    }
+
+    /* Telemetry Log Section */
+    .telemetry-section {
+      display: flex;
+      flex-direction: column;
+      flex: 0 0 35%;
+      min-height: 0;
+      border-top: 1px solid var(--border);
+      background: rgba(247, 229, 193, 0.20);
+    }
+
+    .telemetry-feed {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 16px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.55;
+    }
+
+    .tel-line {
+      display: grid;
+      grid-template-columns: 60px 132px minmax(0, 1fr);
+      gap: 8px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .tel-ts {
+      color: var(--text-muted);
+    }
+
+    .tel-name {
+      color: var(--text-secondary);
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tel-detail {
+      color: var(--text-muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tel-line.duck .tel-name {
+      color: var(--amber);
+    }
+
+    .tel-line.backchannel .tel-name {
+      color: var(--emerald);
+    }
+
+    .tel-line.interrupt .tel-name {
+      color: var(--coral);
+    }
+
+    .tel-line.accent .tel-name {
+      color: var(--forest);
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <!-- Architectural Carbon Topbar -->
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark"></span>
+        <span class="brand-name">OVERLAP</span>
+        <span class="brand-sub">full-duplex</span>
+        <span class="conn-pill">
+          <span class="conn-dot" id="conn-dot"></span>
+          <span id="conn-text">CONNECTING</span>
+        </span>
+      </div>
+
+      <div class="mode-switch" role="group" aria-label="Turn-taking mode">
+        <button class="mode-btn active" data-mode="overlap" id="mode-overlap" type="button">
+          <span class="mode-dot"></span>
+          <span>OVERLAP</span>
+        </button>
+        <button class="mode-btn" data-mode="stock" id="mode-stock" type="button">
+          <span class="mode-dot"></span>
+          <span>STOCK VAD</span>
+        </button>
+      </div>
+
+      <div class="controls">
+        <label class="lang-wrap" title="Controls STT recognition hint, lexicon classifier &amp; Timbre response language">
+          <span class="lang-tag">IN / OUT</span>
+          <select class="lang-select" id="lang-select" aria-label="Conversation language">
+            <option value="auto">Indic Auto (11 Langs)</option>
+            <option value="hi">Hindi · हिन्दी</option>
+            <option value="en" selected>English · IN</option>
+            <option value="ta">Tamil · தமிழ்</option>
+            <option value="te">Telugu · తెలుగు</option>
+            <option value="kn">Kannada · ಕನ್ನಡ</option>
+            <option value="ml">Malayalam · മലയാളം</option>
+            <option value="bn">Bengali · বাংলা</option>
+            <option value="mr">Marathi · मराठी</option>
+            <option value="gu">Gujarati · ગુજરાતી</option>
+            <option value="pa">Punjabi · ਪੰਜਾਬੀ</option>
+            <option value="or">Odia · ଓଡ଼ିଆ</option>
+          </select>
+        </label>
+        <button class="btn-ghost" id="btn-reset" type="button">Reset</button>
+        <button class="btn-mic" id="btn-mic" type="button">
+          <span class="mic-dot"></span>
+          <span id="mic-label">Start Mic</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Desktop Workspace -->
+    <main class="workspace">
+      <!-- Left Signal & FSM Stage -->
+      <section class="signal-pane">
+        <div class="state-rail">
+          <div class="fsm-nodes" id="fsm-nodes">
+            <span class="fsm-node active" data-state="LISTENING">LISTENING</span>
+            <span class="fsm-sep">/</span>
+            <span class="fsm-node" data-state="THINKING">THINKING</span>
+            <span class="fsm-sep">/</span>
+            <span class="fsm-node" data-state="SPEAKING">SPEAKING</span>
+            <span class="fsm-sep">/</span>
+            <span class="fsm-node" data-state="DUCKED">DUCKED</span>
+            <span class="fsm-sep">/</span>
+            <span class="fsm-node" data-state="YIELDED">YIELDED</span>
+          </div>
+
+          <div class="rail-metrics">
+            <div class="metric-chip" id="gain-chip">
+              <span class="metric-label">GAIN</span>
+              <span class="metric-val" id="gain-val">1.00×</span>
+            </div>
+            <div class="verdict-chip" id="verdict-chip">
+              <span id="verdict-val">IDLE</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="scope-stage" id="scope-stage">
+          <canvas id="scope-canvas"></canvas>
+
+          <div class="lane-hud top">
+            <span class="lane-title">
+              <span class="lane-swatch user"></span>
+              CALLER MIC · 16 KHZ + PRISMA STT
+            </span>
+            <span class="lane-tag" id="user-vad-tag">QUIET</span>
+          </div>
+
+          <div class="lane-hud bottom">
+            <span class="lane-title">
+              <span class="lane-swatch agent"></span>
+              AGENT PLAYOUT · TIMBRE 16 KHZ
+            </span>
+            <span class="lane-tag" id="agent-play-tag">IDLE · 1.00×</span>
+          </div>
+        </div>
+
+        <div class="status-strip">
+          <div class="partial-box">
+            <span class="partial-key">PARTIAL</span>
+            <span class="partial-val muted" id="partial-text">waiting for speech</span>
+          </div>
+          <div class="strip-meta">
+            <span>OVERLAP <strong id="overlap-ms">0 ms</strong></span>
+            <span>STACK <strong id="stack-label">PRISMA · EVON · TIMBRE</strong></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Conversation & Telemetry Column -->
+      <aside class="side-pane">
+        <div class="chat-section">
+          <div class="pane-header">
+            <span>Conversation &amp; Memory</span>
+            <span id="turn-count">0 turns</span>
+          </div>
+
+          <div class="chat-feed" id="chat-feed">
+            <div class="empty-hint" id="empty-hint">
+              <div class="empty-hint-title">Speak naturally over the agent.</div>
+              Start your microphone or type a message below. Short acknowledgements duck gain to
+              0.30× and let the response finish; stop phrases or questions cut immediately and
+              trim unspoken words from LLM memory.
+            </div>
+          </div>
+
+          <div class="chat-input-bar">
+            <div class="lang-cue-strip">
+              <span id="lang-cue-label">Active: <strong>English · IN</strong></span>
+              <span id="lang-cue-words">backchannel: "yeah, okay, right" · stop: "wait, hold on"</span>
+            </div>
+            <form class="chat-input-wrap" id="chat-form">
+              <input
+                type="text"
+                class="chat-input"
+                id="chat-input"
+                autocomplete="off"
+                placeholder="Talk or type here (try overlapping while agent speaks)..."
+              />
+              <span class="enter-hint">↵</span>
+            </form>
+          </div>
+        </div>
+
+        <div class="telemetry-section">
+          <div class="pane-header">
+            <span>Engine Events</span>
+            <span id="event-count">0 events</span>
+          </div>
+          <div class="telemetry-feed" id="telemetry-feed"></div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const LANG_HINTS = {
+        auto: { name: "Indic Auto (11 Langs)", bc: "haan / okay / seri", stop: "ruko / wait / nillu" },
+        hi: { name: "Hindi · हिन्दी", bc: "haan, achha, theek", stop: "rukiye, suniye" },
+        en: { name: "English · IN", bc: "yeah, okay, right", stop: "wait, hold on" },
+        ta: { name: "Tamil · தமிழ்", bc: "seri, aama, mhm", stop: "nillunga, irunga" },
+        te: { name: "Telugu · తెలుగు", bc: "avunu, sare, haan", stop: "aagandi, aapandi" },
+        kn: { name: "Kannada · ಕನ್ನಡ", bc: "howdu, sari, haan", stop: "nillisi, tadi" },
+        ml: { name: "Malayalam · മലയാളം", bc: "athe, sheri, hmm", stop: "nirthu, nilkku" },
+        bn: { name: "Bengali · বাংলা", bc: "haan, achha, thik", stop: "thamo, darao" },
+        mr: { name: "Marathi · मराठी", bc: "ho, barobar, haan", stop: "thamba, ruka" },
+        gu: { name: "Gujarati · ગુજરાતી", bc: "haan, barabar, theek", stop: "thobho, raho" },
+        pa: { name: "Punjabi · ਪੰਜਾਬੀ", bc: "haanji, theek, achha", stop: "ruko, suno" },
+        or: { name: "Odia · ଓଡ଼ିଆ", bc: "haan, thik, achha", stop: "raha, suna" },
+      };
+
+      // DOM elements
+      const connDot = document.getElementById("conn-dot");
+      const connText = document.getElementById("conn-text");
+      const modeOverlapBtn = document.getElementById("mode-overlap");
+      const modeStockBtn = document.getElementById("mode-stock");
+      const langSelect = document.getElementById("lang-select");
+      const btnReset = document.getElementById("btn-reset");
+      const btnMic = document.getElementById("btn-mic");
+      const micLabel = document.getElementById("mic-label");
+
+      const fsmNodes = Array.from(document.querySelectorAll(".fsm-node"));
+      const gainChip = document.getElementById("gain-chip");
+      const gainVal = document.getElementById("gain-val");
+      const verdictChip = document.getElementById("verdict-chip");
+      const verdictVal = document.getElementById("verdict-val");
+      const userVadTag = document.getElementById("user-vad-tag");
+      const agentPlayTag = document.getElementById("agent-play-tag");
+      const partialTextEl = document.getElementById("partial-text");
+      const overlapMsEl = document.getElementById("overlap-ms");
+      const stackLabelEl = document.getElementById("stack-label");
+
+      const chatFeed = document.getElementById("chat-feed");
+      const emptyHint = document.getElementById("empty-hint");
+      const chatForm = document.getElementById("chat-form");
+      const chatInput = document.getElementById("chat-input");
+      const langCueLabel = document.getElementById("lang-cue-label");
+      const langCueWords = document.getElementById("lang-cue-words");
+      const turnCountEl = document.getElementById("turn-count");
+      const telemetryFeed = document.getElementById("telemetry-feed");
+      const eventCountEl = document.getElementById("event-count");
+
+      const scopeStage = document.getElementById("scope-stage");
+      const canvas = document.getElementById("scope-canvas");
+      const ctx = canvas.getContext("2d");
+
+      // Session state
+      let ws = null;
+      let currentState = "LISTENING";
+      let currentGain = 1.0;
+      let currentMode = "overlap";
+      let currentLang = "en";
+      let vadActive = false;
+      let turnCount = 0;
+      let telemetryCount = 0;
+
+      // Live dual-lane oscilloscope ring buffers (180 bins ~ 6s scrolling)
+      const BINS = 180;
+      const userTrace = new Float32Array(BINS);
+      const agentTrace = new Float32Array(BINS);
+      const agentDucked = new Uint8Array(BINS);
+      const markers = [];
+      let liveUserLevel = 0;
+      let serverUserLevel = 0;
+      let serverAgentLevel = 0;
+      let lastScrollTime = performance.now();
+
+      // Web Audio playback engine (16 kHz PCM from backend)
+      let audioCtx = null;
+      let nextPlayTime = 0;
+      const activePlayNodes = new Set();
+      let bufferTimer = null;
+
+      // Web Audio microphone capture engine
+      let micStream = null;
+      let micSource = null;
+      let micProcessor = null;
+      let micActive = false;
+      let micFrameAcc = [];
+
+      function ensureAudioContext() {
+        if (!audioCtx) {
+          const Ctx = window.AudioContext || window.webkitAudioContext;
+          audioCtx = new Ctx({ sampleRate: 16000 });
+        }
+        if (audioCtx.state === "suspended") {
+          audioCtx.resume().catch(() => {});
+        }
+        return audioCtx;
+      }
+
+      function flushPlayback() {
+        for (const node of activePlayNodes) {
+          try {
+            node.stop(0);
+            node.disconnect();
+          } catch (_) {}
+        }
+        activePlayNodes.clear();
+        nextPlayTime = 0;
+        serverAgentLevel = 0;
+      }
+
+      function enqueuePcmPlayback(arrayBuf) {
+        const ac = ensureAudioContext();
+        const int16 = new Int16Array(arrayBuf);
+        if (int16.length === 0) return;
+
+        const floatBuf = new Float32Array(int16.length);
+        let peak = 0;
+        for (let i = 0; i < int16.length; i++) {
+          const s = int16[i] / 32768.0;
+          floatBuf[i] = s;
+          const abs = Math.abs(s);
+          if (abs > peak) peak = abs;
+        }
+        serverAgentLevel = Math.min(1.0, peak * 1.45);
+
+        const audioBuf = ac.createBuffer(1, floatBuf.length, 16000);
+        audioBuf.copyToChannel(floatBuf, 0);
+
+        const src = ac.createBufferSource();
+        src.buffer = audioBuf;
+        src.connect(ac.destination);
+
+        const now = ac.currentTime;
+        if (nextPlayTime < now + 0.015) {
+          nextPlayTime = now + 0.02;
+        }
+        const startAt = nextPlayTime;
+        nextPlayTime = startAt + audioBuf.duration;
+
+        activePlayNodes.add(src);
+        src.onended = () => {
+          activePlayNodes.delete(src);
+        };
+        src.start(startAt);
+      }
+
+      function downsampleTo16k(floatSamples, inputRate) {
+        if (inputRate === 16000) {
+          const out = new Int16Array(floatSamples.length);
+          for (let i = 0; i < floatSamples.length; i++) {
+            const c = Math.max(-1, Math.min(1, floatSamples[i]));
+            out[i] = c < 0 ? c * 32768 : c * 32767;
+          }
+          return out;
+        }
+        const ratio = inputRate / 16000;
+        const outLen = Math.floor(floatSamples.length / ratio);
+        const out = new Int16Array(outLen);
+        for (let i = 0; i < outLen; i++) {
+          const pos = i * ratio;
+          const idx = Math.floor(pos);
+          const frac = pos - idx;
+          const s0 = floatSamples[idx] || 0;
+          const s1 = floatSamples[Math.min(idx + 1, floatSamples.length - 1)] || 0;
+          const s = s0 + (s1 - s0) * frac;
+          const c = Math.max(-1, Math.min(1, s));
+          out[i] = c < 0 ? c * 32768 : c * 32767;
+        }
+        return out;
+      }
+
+      async function startMic() {
+        try {
+          const ac = ensureAudioContext();
+          micStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: false,
+              channelCount: 1,
+            },
+          });
+
+          micSource = ac.createMediaStreamSource(micStream);
+          micProcessor = ac.createScriptProcessor(1024, 1, 1);
+
+          const silentGain = ac.createGain();
+          silentGain.gain.value = 0;
+
+          micProcessor.onaudioprocess = (ev) => {
+            if (!micActive || !ws || ws.readyState !== WebSocket.OPEN) return;
+            const input = ev.inputBuffer.getChannelData(0);
+            let sumSq = 0;
+            for (let i = 0; i < input.length; i++) sumSq += input[i] * input[i];
+            const rms = Math.sqrt(sumSq / Math.max(1, input.length));
+            liveUserLevel = Math.min(1.0, rms * 5.0);
+
+            const pcm16 = downsampleTo16k(input, ac.sampleRate);
+            for (let i = 0; i < pcm16.length; i++) {
+              micFrameAcc.push(pcm16[i]);
+            }
+            while (micFrameAcc.length >= 320) {
+              const frameArr = new Int16Array(micFrameAcc.splice(0, 320));
+              ws.send(frameArr.buffer);
+            }
+          };
+
+          micSource.connect(micProcessor);
+          micProcessor.connect(silentGain);
+          silentGain.connect(ac.destination);
+
+          micActive = true;
+          btnMic.classList.add("recording");
+          micLabel.textContent = "Stop Mic";
+          sendJson({ type: "mic_state", active: true });
+        } catch (err) {
+          addTelemetryLine(0, "mic.error", String(err), "interrupt");
+        }
+      }
+
+      function stopMic() {
+        micActive = false;
+        liveUserLevel = 0;
+        micFrameAcc = [];
+        if (micProcessor) {
+          try {
+            micProcessor.disconnect();
+          } catch (_) {}
+          micProcessor = null;
+        }
+        if (micSource) {
+          try {
+            micSource.disconnect();
+          } catch (_) {}
+          micSource = null;
+        }
+        if (micStream) {
+          for (const track of micStream.getTracks()) track.stop();
+          micStream = null;
+        }
+        btnMic.classList.remove("recording");
+        micLabel.textContent = "Start Mic";
+        sendJson({ type: "mic_state", active: false });
+      }
+
+      // UI Updates
+      function setConnection(online, label) {
+        connDot.className = "conn-dot " + (online ? "online" : "offline");
+        connText.textContent = label;
+      }
+
+      function updateLanguageCue(lang) {
+        const hint = LANG_HINTS[lang] || LANG_HINTS.hi;
+        if (langCueLabel) {
+          langCueLabel.innerHTML = "";
+          const prefix = document.createTextNode("Active: ");
+          const strong = document.createElement("strong");
+          strong.textContent = hint.name;
+          langCueLabel.appendChild(prefix);
+          langCueLabel.appendChild(strong);
+        }
+        if (langCueWords) {
+          langCueWords.textContent = `backchannel: "${hint.bc}" · stop: "${hint.stop}"`;
+        }
+      }
+
+      function updateStateUI(msg) {
+        if (msg.state) currentState = msg.state;
+        if (typeof msg.gain === "number") currentGain = msg.gain;
+        if (msg.mode) currentMode = msg.mode;
+        if (msg.lang) currentLang = msg.lang;
+        if (typeof msg.vad_active === "boolean") vadActive = msg.vad_active;
+
+        for (const node of fsmNodes) {
+          node.classList.toggle("active", node.dataset.state === currentState);
+        }
+
+        modeOverlapBtn.classList.toggle("active", currentMode === "overlap");
+        modeStockBtn.classList.toggle("active", currentMode === "stock");
+        if (langSelect && langSelect.value !== currentLang) {
+          langSelect.value = currentLang;
+        }
+        updateLanguageCue(currentLang);
+
+        gainVal.textContent = currentGain.toFixed(2) + "×";
+        gainChip.classList.toggle("ducked", currentGain < 0.9);
+
+        userVadTag.textContent = vadActive ? "VAD ACTIVE" : "QUIET";
+        userVadTag.classList.toggle("vad-hot", vadActive);
+
+        if (currentState === "DUCKED") {
+          agentPlayTag.textContent = "DUCKED · " + currentGain.toFixed(2) + "×";
+          agentPlayTag.className = "lane-tag ducked";
+        } else if (currentState === "SPEAKING") {
+          agentPlayTag.textContent = "SPEAKING · " + currentGain.toFixed(2) + "×";
+          agentPlayTag.className = "lane-tag speaking";
+        } else if (currentState === "YIELDED") {
+          agentPlayTag.textContent = "FLUSHED · 0.00×";
+          agentPlayTag.className = "lane-tag";
+        } else {
+          agentPlayTag.textContent = currentState + " · " + currentGain.toFixed(2) + "×";
+          agentPlayTag.className = "lane-tag";
+        }
+
+        if (msg.verdict) {
+          applyVerdictUI(msg.verdict);
+        }
+      }
+
+      function applyVerdictUI(v) {
+        if (!v || !v.label) return;
+        const lbl = String(v.label).toUpperCase();
+        const ms = typeof v.decision_ms === "number" ? Math.round(v.decision_ms) : 0;
+        verdictVal.textContent = `${lbl} · ${ms} ms`;
+        verdictChip.className = "verdict-chip";
+        if (lbl === "BACKCHANNEL") {
+          verdictChip.classList.add("backchannel");
+        } else if (lbl === "INTERRUPT") {
+          verdictChip.classList.add("interrupt");
+        } else if (lbl === "SIDE_TALK") {
+          verdictChip.classList.add("sidetalk");
+        }
+      }
+
+      function addChatItem(msg) {
+        if (emptyHint && emptyHint.parentNode === chatFeed) {
+          emptyHint.remove();
+        }
+
+        if (msg.backchannel) {
+          const pill = document.createElement("div");
+          pill.className = "bc-pill";
+          const left = document.createElement("span");
+          left.textContent = `backchannel "${msg.text}"`;
+          const right = document.createElement("span");
+          right.className = "bc-pill-action";
+          right.textContent = "agent continued";
+          pill.appendChild(left);
+          pill.appendChild(right);
+          chatFeed.appendChild(pill);
+          chatFeed.scrollTop = chatFeed.scrollHeight;
+          return;
+        }
+
+        turnCount += 1;
+        turnCountEl.textContent = `${turnCount} ${turnCount === 1 ? "turn" : "turns"}`;
+
+        const row = document.createElement("div");
+        row.className = `turn-row ${msg.role}` + (msg.interrupted ? " interrupted" : "");
+
+        const meta = document.createElement("div");
+        meta.className = "turn-meta";
+
+        const role = document.createElement("span");
+        role.className = "turn-role";
+        role.textContent = msg.role === "user" ? "YOU" : "OVERLAP";
+        meta.appendChild(role);
+
+        if (msg.interrupted && msg.role === "assistant") {
+          const tag = document.createElement("span");
+          tag.className = "turn-tag";
+          tag.textContent = msg.discarded_text ? "TRUNCATED · UNSPOKEN CUT" : "TRUNCATED TO HEARD";
+          meta.appendChild(tag);
+        } else if (msg.interrupted && msg.role === "user") {
+          const tag = document.createElement("span");
+          tag.className = "turn-tag";
+          tag.textContent = "BARGE-IN";
+          meta.appendChild(tag);
+        }
+
+        const body = document.createElement("div");
+        body.className = "turn-text";
+        if (msg.text) {
+          body.appendChild(document.createTextNode(msg.text));
+        }
+        if (msg.interrupted && msg.role === "assistant" && msg.discarded_text) {
+          if (msg.text) {
+            body.appendChild(document.createTextNode(" "));
+          }
+          const cutSpan = document.createElement("span");
+          cutSpan.className = "turn-discarded";
+          cutSpan.textContent = msg.discarded_text;
+          body.appendChild(cutSpan);
+        }
+
+        row.appendChild(meta);
+        row.appendChild(body);
+        chatFeed.appendChild(row);
+        chatFeed.scrollTop = chatFeed.scrollHeight;
+      }
+
+      function addTelemetryLine(tsMs, name, detail, toneClass) {
+        telemetryCount += 1;
+        eventCountEl.textContent = `${telemetryCount} events`;
+
+        const row = document.createElement("div");
+        row.className = "tel-line" + (toneClass ? ` ${toneClass}` : "");
+
+        const sec = (tsMs / 1000).toFixed(3).padStart(7, " ");
+        const tsEl = document.createElement("span");
+        tsEl.className = "tel-ts";
+        tsEl.textContent = `+${sec}s`;
+
+        const nameEl = document.createElement("span");
+        nameEl.className = "tel-name";
+        nameEl.textContent = name;
+
+        const detEl = document.createElement("span");
+        detEl.className = "tel-detail";
+        detEl.textContent = detail;
+
+        row.appendChild(tsEl);
+        row.appendChild(nameEl);
+        row.appendChild(detEl);
+        telemetryFeed.appendChild(row);
+
+        while (telemetryFeed.children.length > 150) {
+          telemetryFeed.removeChild(telemetryFeed.firstChild);
+        }
+        telemetryFeed.scrollTop = telemetryFeed.scrollHeight;
+      }
+
+      function formatTelemetryDetail(name, fields) {
+        if (!fields) return "";
+        if (name === "fsm.transition") {
+          return `${fields.from_state} -> ${fields.to_state} (${fields.event || ""})`;
+        }
+        if (name === "verdict") {
+          return `${fields.label} · ${fields.overlap_ms}ms · ${fields.reason}`;
+        }
+        if (name === "duck.applied") {
+          return `gain=${fields.gain}`;
+        }
+        const pairs = Object.entries(fields)
+          .slice(0, 3)
+          .map(([k, v]) => `${k}=${v}`);
+        return pairs.join(" ");
+      }
+
+      function telemetryTone(name, fields) {
+        if (name === "duck.applied") return "duck";
+        if (name === "verdict") {
+          const lbl = String(fields?.label || "").toLowerCase();
+          if (lbl === "backchannel") return "backchannel";
+          if (lbl === "interrupt") return "interrupt";
+          return "duck";
+        }
+        if (name.startsWith("yield.")) return "interrupt";
+        if (name === "fsm.transition" && fields?.to_state === "SPEAKING") return "accent";
+        return "";
+      }
+
+      function clearWorkspaceLogs() {
+        turnCount = 0;
+        telemetryCount = 0;
+        turnCountEl.textContent = "0 turns";
+        eventCountEl.textContent = "0 events";
+        chatFeed.innerHTML = "";
+        chatFeed.appendChild(emptyHint);
+        telemetryFeed.innerHTML = "";
+        partialTextEl.textContent = "waiting for speech";
+        partialTextEl.classList.add("muted");
+        overlapMsEl.textContent = "0 ms";
+        verdictVal.textContent = "IDLE";
+        verdictChip.className = "verdict-chip";
+        markers.length = 0;
+      }
+
+      // WebSocket connection
+      function sendJson(obj) {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify(obj));
+        }
+      }
+
+      function connectWs() {
+        const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+        ws = new WebSocket(`${proto}//${window.location.host}/ws`);
+        ws.binaryType = "arraybuffer";
+
+        ws.onopen = () => {
+          setConnection(true, "CONNECTED");
+          if (bufferTimer) clearInterval(bufferTimer);
+          bufferTimer = setInterval(() => {
+            if (!audioCtx || !ws || ws.readyState !== WebSocket.OPEN) return;
+            const buffered = Math.max(0, Math.round((nextPlayTime - audioCtx.currentTime) * 1000));
+            if (buffered > 0) {
+              sendJson({ type: "buffer_ms", buffered_ms: buffered });
+            }
+          }, 100);
+        };
+
+        ws.onclose = () => {
+          setConnection(false, "DISCONNECTED");
+          flushPlayback();
+          setTimeout(connectWs, 1200);
+        };
+
+        ws.onmessage = (ev) => {
+          if (ev.data instanceof ArrayBuffer) {
+            enqueuePcmPlayback(ev.data);
+            return;
+          }
+          let msg;
+          try {
+            msg = JSON.parse(ev.data);
+          } catch (_) {
+            return;
+          }
+
+          if (msg.type === "flush") {
+            flushPlayback();
+            return;
+          }
+          if (msg.type === "reset") {
+            flushPlayback();
+            clearWorkspaceLogs();
+            return;
+          }
+          if (msg.type === "status") {
+            const p = msg.providers || {};
+            const stt = (p.stt || "local").toUpperCase();
+            const llm = (p.llm || "local").toUpperCase();
+            const tts = (p.tts || "local").toUpperCase();
+            stackLabelEl.textContent = `${stt} · ${llm} · ${tts}`;
+            updateStateUI(msg);
+            return;
+          }
+          if (msg.type === "state") {
+            updateStateUI(msg);
+            return;
+          }
+          if (msg.type === "meter") {
+            currentState = msg.state || currentState;
+            currentGain = typeof msg.gain === "number" ? msg.gain : currentGain;
+            vadActive = Boolean(msg.vad_active);
+            serverUserLevel = msg.user_level || 0;
+            if (activePlayNodes.size === 0) {
+              serverAgentLevel = msg.agent_level || 0;
+            }
+            overlapMsEl.textContent = `${msg.overlap_ms || 0} ms`;
+            updateStateUI(msg);
+            return;
+          }
+          if (msg.type === "stt") {
+            partialTextEl.textContent = msg.text;
+            partialTextEl.classList.remove("muted");
+            return;
+          }
+          if (msg.type === "verdict") {
+            applyVerdictUI(msg);
+            const lbl = String(msg.label || "").toUpperCase();
+            const ms = Math.round(msg.decision_ms || 0);
+            const col =
+              lbl === "BACKCHANNEL" ? "#2B5E54" : lbl === "INTERRUPT" ? "#B85038" : "#8F7F38";
+            markers.push({
+              age: 0,
+              label: `${lbl === "BACKCHANNEL" ? "BC" : lbl === "INTERRUPT" ? "INT" : "ST"} ${ms}ms`,
+              color: col,
+            });
+            return;
+          }
+          if (msg.type === "turn") {
+            addChatItem(msg);
+            return;
+          }
+          if (msg.type === "telemetry") {
+            const detail = formatTelemetryDetail(msg.name, msg.fields);
+            const tone = telemetryTone(msg.name, msg.fields);
+            addTelemetryLine(msg.ts_ms || 0, msg.name, detail, tone);
+          }
+        };
+      }
+
+      // Controls wiring
+      modeOverlapBtn.addEventListener("click", () => {
+        sendJson({ type: "set_mode", mode: "overlap" });
+      });
+
+      modeStockBtn.addEventListener("click", () => {
+        sendJson({ type: "set_mode", mode: "stock" });
+      });
+
+      langSelect.addEventListener("change", () => {
+        const chosen = langSelect.value;
+        updateLanguageCue(chosen);
+        sendJson({ type: "set_lang", lang: chosen });
+      });
+
+      btnReset.addEventListener("click", () => {
+        sendJson({ type: "reset" });
+      });
+
+      btnMic.addEventListener("click", () => {
+        if (micActive) {
+          stopMic();
+        } else {
+          startMic();
+        }
+      });
+
+      chatForm.addEventListener("submit", (ev) => {
+        ev.preventDefault();
+        const text = chatInput.value.trim();
+        if (!text) return;
+        ensureAudioContext();
+        chatInput.value = "";
+        sendJson({ type: "user_text", text });
+      });
+
+      // 60 FPS Dual-Lane Oscilloscope Renderer
+      function resizeCanvas() {
+        const rect = scopeStage.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+        canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      window.addEventListener("resize", resizeCanvas);
+      resizeCanvas();
+
+      function pushSamples(now) {
+        if (now - lastScrollTime < 32) return;
+        lastScrollTime = now;
+
+        for (let i = 0; i < BINS - 1; i++) {
+          userTrace[i] = userTrace[i + 1];
+          agentTrace[i] = agentTrace[i + 1];
+          agentDucked[i] = agentDucked[i + 1];
+        }
+
+        const uAmp = Math.max(liveUserLevel, serverUserLevel);
+        userTrace[BINS - 1] = uAmp;
+
+        const aActive =
+          activePlayNodes.size > 0 || currentState === "SPEAKING" || currentState === "DUCKED";
+        const aAmp = aActive ? Math.max(serverAgentLevel, 0.04) * currentGain : 0;
+        agentTrace[BINS - 1] = aAmp;
+        agentDucked[BINS - 1] = currentGain < 0.9 ? 1 : 0;
+
+        for (let i = markers.length - 1; i >= 0; i--) {
+          markers[i].age += 1;
+          if (markers[i].age >= BINS) {
+            markers.splice(i, 1);
+          }
+        }
+      }
+
+      function drawScope(now) {
+        pushSamples(now);
+
+        const w = scopeStage.clientWidth;
+        const h = scopeStage.clientHeight;
+        if (w <= 0 || h <= 0) {
+          requestAnimationFrame(drawScope);
+          return;
+        }
+
+        ctx.clearRect(0, 0, w, h);
+
+        const splitY = Math.round(h * 0.44);
+        const userMidY = Math.round(splitY * 0.56);
+        const agentMidY = Math.round(splitY + (h - splitY) * 0.54);
+        const userMaxH = Math.max(18, splitY * 0.34);
+        const agentMaxH = Math.max(22, (h - splitY) * 0.36);
+
+        // Architectural drafting grid & centerlines
+        ctx.strokeStyle = "rgba(28, 57, 63, 0.11)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        const cols = 6;
+        for (let c = 1; c < cols; c++) {
+          const gx = Math.round((w * c) / cols) + 0.5;
+          ctx.moveTo(gx, 0);
+          ctx.lineTo(gx, h);
+        }
+        ctx.moveTo(0, userMidY + 0.5);
+        ctx.lineTo(w, userMidY + 0.5);
+        ctx.moveTo(0, agentMidY + 0.5);
+        ctx.lineTo(w, agentMidY + 0.5);
+        ctx.stroke();
+
+        // Warm ochre 0.30x duck envelope band across agent track when ducking
+        const duckBandH = Math.max(16, agentMaxH * 0.62);
+        if (currentGain < 0.9 || currentState === "DUCKED") {
+          ctx.fillStyle = "rgba(184, 168, 93, 0.16)";
+          ctx.fillRect(0, agentMidY - duckBandH / 2, w, duckBandH);
+          ctx.save();
+          ctx.setLineDash([4, 4]);
+          ctx.strokeStyle = "rgba(161, 88, 31, 0.58)";
+          ctx.beginPath();
+          ctx.moveTo(0, agentMidY - duckBandH / 2);
+          ctx.lineTo(w, agentMidY - duckBandH / 2);
+          ctx.moveTo(0, agentMidY + duckBandH / 2);
+          ctx.lineTo(w, agentMidY + duckBandH / 2);
+          ctx.stroke();
+          ctx.restore();
+
+          ctx.fillStyle = "#A1581F";
+          ctx.font = "600 9.5px 'JetBrains Mono', monospace";
+          ctx.fillText("0.30× DUCK ENVELOPE (-10.5 dB)", 22, agentMidY - duckBandH / 2 - 6);
+        }
+
+        // Crisp architectural lane divider
+        ctx.strokeStyle = "rgba(28, 57, 63, 0.24)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, splitY + 0.5);
+        ctx.lineTo(w, splitY + 0.5);
+        ctx.stroke();
+
+        const barW = Math.max(2, w / BINS - 2);
+        const stepX = w / BINS;
+
+        const userGrad = ctx.createLinearGradient(0, userMidY - userMaxH, 0, userMidY + userMaxH);
+        userGrad.addColorStop(0, "#1C393F");
+        userGrad.addColorStop(0.5, "#264B53");
+        userGrad.addColorStop(1, "#35626B");
+
+        const agentGrad = ctx.createLinearGradient(0, agentMidY - agentMaxH, 0, agentMidY + agentMaxH);
+        agentGrad.addColorStop(0, "#8C7D3A");
+        agentGrad.addColorStop(0.5, "#B8A85D");
+        agentGrad.addColorStop(1, "#CEBE76");
+
+        const duckGrad = ctx.createLinearGradient(0, agentMidY - agentMaxH, 0, agentMidY + agentMaxH);
+        duckGrad.addColorStop(0, "#A1581F");
+        duckGrad.addColorStop(0.5, "#C47231");
+        duckGrad.addColorStop(1, "#DC9252");
+
+        // Caller bars (Gunmetal vs muted parchment-slate hairline)
+        for (let i = 0; i < BINS; i++) {
+          const x = i * stepX;
+          const u = userTrace[i];
+          const barH = Math.max(2, u * userMaxH * 2);
+          ctx.fillStyle = u > 0.04 ? userGrad : "rgba(28, 57, 63, 0.14)";
+          ctx.fillRect(x, userMidY - barH / 2, barW, barH);
+        }
+
+        // Agent bars (Ecru vs warm bronze when ducked)
+        for (let i = 0; i < BINS; i++) {
+          const x = i * stepX;
+          const a = agentTrace[i];
+          const barH = Math.max(2, a * agentMaxH * 2);
+          if (a <= 0.01) {
+            ctx.fillStyle = "rgba(184, 168, 93, 0.28)";
+          } else {
+            ctx.fillStyle = agentDucked[i] ? duckGrad : agentGrad;
+          }
+          ctx.fillRect(x, agentMidY - barH / 2, barW, barH);
+        }
+
+        // Verdict timeline markers across both lanes
+        ctx.font = "600 10px 'JetBrains Mono', monospace";
+        for (const m of markers) {
+          const idx = BINS - 1 - m.age;
+          const x = Math.round(idx * stepX) + 0.5;
+          ctx.strokeStyle = m.color;
+          ctx.lineWidth = 1.25;
+          ctx.beginPath();
+          ctx.moveTo(x, 38);
+          ctx.lineTo(x, h - 10);
+          ctx.stroke();
+
+          const tagW = Math.max(54, ctx.measureText(m.label).width + 12);
+          const tagX = Math.max(8, Math.min(w - tagW - 8, x + 5));
+          const tagY = splitY - 22;
+          ctx.fillStyle = "#FCF6EA";
+          ctx.fillRect(tagX, tagY, tagW, 17);
+          ctx.strokeStyle = m.color;
+          ctx.lineWidth = 1;
+          ctx.strokeRect(tagX, tagY, tagW, 17);
+          ctx.fillStyle = m.color;
+          ctx.fillText(m.label, tagX + 6, tagY + 12);
+        }
+
+        requestAnimationFrame(drawScope);
+      }
+
+      requestAnimationFrame(drawScope);
+      connectWs();
+    })();
+  </script>
+</body>
+</html>
